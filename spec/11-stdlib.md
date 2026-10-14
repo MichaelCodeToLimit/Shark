@@ -3,7 +3,7 @@
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
 The standard library is presented as **signatures** ([doc 03](03-clause-registry.md)),
-because in Coco an API *is* a set of signatures. Every signature below is part of the
+because in Shark an API *is* a set of signatures. Every signature below is part of the
 core registry or a module registry and is subject to R1–R6.
 
 Modules: `ui` `events` `net` `store` `draw2d` `scene3d` `physics` `audio` `input`
@@ -24,7 +24,7 @@ page re-renders when a value it reads changes — dependency tracking is derived
 effect paths of [doc 07 §7.2](07-concurrency-and-simd.md), so it is exact, not
 heuristic.
 
-```coco
+```shark
 page Home
   show text Welcome
   show button Start
@@ -122,7 +122,7 @@ signature centred
   gives a view node
 ```
 
-```coco
+```shark
 page Profile
   in a column spaced 12
     show picture avatar of current user
@@ -141,7 +141,7 @@ identically on every platform).
 
 Styles are declarations, not strings:
 
-```coco
+```shark
 a style called heading is
   text size 28
   text weight bold
@@ -262,7 +262,7 @@ signature a request arrives of kind event
 
 Declaring your own:
 
-```coco
+```shark
 to notice a user posts something
   give an event
 
@@ -403,7 +403,7 @@ signature grouped by     slot collection … particle by … slot key of kind bl
                                                                   gives a table
 ```
 
-All of these are ordinary generic Coco actions; there is no special-cased "builtin"
+All of these are ordinary generic Shark actions; there is no special-cased "builtin"
 behaviour. They vectorise under the rules of [doc 07 §7.9](07-concurrency-and-simd.md).
 
 ## 11.5 `net` — lightweight async networking **[N]**
@@ -462,7 +462,7 @@ signature serve
 
 Concurrency:
 
-```coco
+```shark
 when the page opens
   fetch these at the same time
     let profile be get json from https example com api me
@@ -472,7 +472,7 @@ when the page opens
 
 Server:
 
-```coco
+```shark
 use net
 
 serve on port 8080
@@ -492,9 +492,9 @@ deadline on every operation ([doc 07 §7.7.1](07-concurrency-and-simd.md)).
 ## 11.6 `store` — embedded persistent storage **[N]**
 
 An embedded, transactional, single-file store. Not a SQL dialect — Rule 5 forbids a
-second query language — but a set of Coco signatures over typed collections.
+second query language — but a set of Shark signatures over typed collections.
 
-```coco
+```shark
 use store
 
 a person has
@@ -570,7 +570,7 @@ signature all at once
 
 Implementation: a log-structured B-tree with MVCC snapshots, WAL, full ACID,
 crash-safe, with a file format versioned and forward compatible. Queries compile to
-index plans at **compile time**, because the condition block is ordinary Coco that the
+index plans at **compile time**, because the condition block is ordinary Shark that the
 compiler can analyse — so there is no query planner at runtime and no string
 interpolation, which means **SQL injection is not expressible**.
 
@@ -655,7 +655,7 @@ signature a material called
 
 Renderer: clustered forward+ with physically based shading, cascaded shadow maps,
 GPU-driven culling, and an optional deferred path. Assets: glTF 2.0 in, with an
-Coco-native packed format produced at build time by `compose assets`.
+Shark-native packed format produced at build time by `compose assets`.
 
 ### 11.7.3 `physics`
 
@@ -786,7 +786,7 @@ signature ask
 
 Faithful to the original concept:
 
-```coco
+```shark
 create neural network Brain
   an embedding layer of 512
   repeat 12 times
@@ -801,8 +801,8 @@ when Brain receives text
   generate an answer
 ```
 
-Gradients come from **reverse-mode automatic differentiation on CIR-C**: `train`
-differentiates the model's forward CIR, so a user-written layer is differentiable
+Gradients come from **reverse-mode automatic differentiation on SIR-C**: `train`
+differentiates the model's forward SIR, so a user-written layer is differentiable
 without any registration step. The AD transform is a middle-end pass
 ([doc 09 §9.5](09-compiler-pipeline.md)) and is subject to the verifier.
 
@@ -877,7 +877,7 @@ signature expect this to fail
   slot body of kind block
 ```
 
-```coco
+```shark
 use test
 
 a test called damage reduces health checks
@@ -889,7 +889,7 @@ a test called damage reduces health checks
 `compose test` discovers every `a test called` in the project, runs them in parallel
 (they are handlers with disjoint state by construction), and reports. Property testing:
 
-```coco
+```shark
 a test called sums are commutative checks
   for any whole numbers a and b
     expect a plus b to be b plus a

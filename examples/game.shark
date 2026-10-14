@@ -2,7 +2,7 @@ note ---------------------------------------------------------------------------
 note This file is a specification illustration. It uses record declarations,
 note abilities and control flow, which the single file reference front end does
 note not implement yet (see spec/15 section 15.8). Programs that the reference
-note can compile today are hello.coco, tour*.coco, pages.coco and ambiguity.coco.
+note can compile today are hello.shark, tour*.shark, pages.shark and ambiguity.shark.
 note ---------------------------------------------------------------------------
 
 note A small game. Shows records, handlers, regions, parallel data work and

@@ -1,9 +1,9 @@
 # Lapis — the earlier prototype
 
 This directory holds the **Lapis** prototype, the first attempt at the
-punctuation-free language that later became [Coco](../../README.md). It was moved
+punctuation-free language that later became [Shark](../../README.md). It was moved
 here unchanged on 2026-09-22 when the specification work began; nothing in it was
-edited, and nothing in the Coco toolchain reads from it.
+edited, and nothing in the Shark toolchain reads from it.
 
 It is kept because it records what the idea looked like before it had a grammar:
 

@@ -17,16 +17,16 @@
  8  type check              inference, abilities, exhaustiveness        [doc 05]
  9  effect infer            effect sets per action and handler          [doc 07]
 10  ownership + region      storage ladder, borrows, escape             [doc 06]
-11  lower to CIR-D          declarative + imperative                    [doc 08]
+11  lower to SIR-D          declarative + imperative                    [doc 08]
 12  monomorphise            generics, abilities → concrete functions
-13  lower to CIR-C          SSA, regions materialised
+13  lower to SIR-C          SSA, regions materialised
 14  verify                  24 invariants                               [doc 08 §8.8]
 15  canonicalise            ordering + hash                             [doc 08 §8.6]
-16  optimise                CIR-C → CIR-C passes                        §9.5
+16  optimise                SIR-C → SIR-C passes                        §9.5
 17  lower to MIR            target-shaped, still portable
 18  codegen                 Cranelift | LLVM | SPIR-V | WGSL            [doc 10]
 19  link                    native link, or WASM link, or bundle
-20  emit                    binary + side tables + `.coco.hash`
+20  emit                    binary + side tables + `.shark.hash`
 ```
 
 Phases 1–15 are **target independent** and produce the canonical artefact. Phases 16–20
@@ -43,7 +43,7 @@ binding), keyed by CID.
 - An interface change invalidates dependents transitively.
 - The registry is rebuilt incrementally; R1–R6 are re-checked only for the affected trie
   subtrees.
-- Query results are stored in `.coco/cache` keyed by input hash, so a rebuild after
+- Query results are stored in `.shark/cache` keyed by input hash, so a rebuild after
   `git checkout` of a previously built revision is a cache hit.
 
 Target: **sub-100 ms** edit-to-diagnostic for a single-item change in a 100 000-line
@@ -54,7 +54,7 @@ project, which is what makes the LSP experience in [doc 13](13-lsp.md) possible.
 | Command | Level | Back end | Character |
 | --- | --- | --- | --- |
 | `compose` | `dev` | Cranelift | fastest build, full checks, full debug info, hot reload |
-| `compose release` | `release` | LLVM `-O2`-equivalent + Coco passes | balanced; the default for shipping |
+| `compose release` | `release` | LLVM `-O2`-equivalent + Shark passes | balanced; the default for shipping |
 | `compose extreme` | `extreme` | LLVM `-O3` + LTO + PGO + auto-device | longest build, maximum throughput |
 | `compose release --small` | `small` | LLVM `-Oz` + section GC | minimum binary size (WASM, embedded) |
 
@@ -112,7 +112,7 @@ A file with *n* independent errors reports *n* diagnostics, not *n*².
 
 ## 9.5 Middle-end passes **[N]**
 
-Run on CIR-C, each preserving the verifier invariants (which are re-checked after every
+Run on SIR-C, each preserving the verifier invariants (which are re-checked after every
 pass in dev builds).
 
 | Pass | Purpose | Enables |
@@ -136,7 +136,7 @@ pass in dev builds).
 ### 9.5.1 Why refcount elision works so well here **[I]**
 
 In most reference-counted languages, elision is limited because the compiler cannot prove
-that a value is not also held elsewhere. Coco's ownership analysis
+that a value is not also held elsewhere. Shark's ownership analysis
 ([doc 06 §6.3](06-memory-and-safety.md)) has already partitioned every place into
 `owns` / `borrows(r)` / `shares`. A `retain`/`release` pair around a `borrows(r)` use
 whose region `r` is nested inside the owner's region is *provably* redundant. The pass
@@ -168,7 +168,7 @@ compose run --record-profile profiles/         # collect
   valid across formatting and translation.
 - A profile from an English build is valid for the Hebrew translation of the same
   program, because the CIDs are identical. This is a direct dividend of
-  [doc 08 §8.7](08-cir.md).
+  [doc 08 §8.7](08-sir.md).
 - `compose extreme` without a profile performs a two-stage build: instrument, run the
   project's `to profile` action (if declared), then rebuild. Projects without one fall
   back to static heuristics and report `I-0971`.
@@ -220,10 +220,10 @@ output consumed by CI (`--message-format json`).
 See [doc 16](16-roadmap.md) for the full plan. In outline:
 
 1. **Stage 0** — a front end in a host language (the reference implementation in this
-   repository) that produces CIR-C.
-2. **Stage 1** — an CIR-C interpreter, enough to run the Coco-written parts of the
+   repository) that produces SIR-C.
+2. **Stage 1** — an SIR-C interpreter, enough to run the Shark-written parts of the
    compiler.
-3. **Stage 2** — the Coco compiler written in Coco, compiled by stage 0 + stage 1.
+3. **Stage 2** — the Shark compiler written in Shark, compiled by stage 0 + stage 1.
 4. **Stage 3** — stage 2 compiles itself; the fixpoint is checked by comparing canonical
    hashes of stage 2's and stage 3's output. Because the hash is locale- and
    format-invariant, this check is exact.

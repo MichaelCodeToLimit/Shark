@@ -1,8 +1,8 @@
 note This file demonstrates every place where punctuation-free syntax could be
 note ambiguous, and how the Clause Signature Registry resolves each one.
 note Everything here parses with the reference front end:
-note   python reference/coco_ref.py examples/ambiguity.coco --emit ast
-note   python reference/coco_ref.py --why examples/ambiguity.coco:18
+note   python reference/shark_ref.py examples/ambiguity.shark --emit ast
+note   python reference/shark_ref.py --why examples/ambiguity.shark:18
 
 note ---------------------------------------------------------- 1. greedy text
 
@@ -104,7 +104,7 @@ note             `1 is less than 2 and 2 is less than 3`.
 note ---------------------------------------------------------- 9. beyond the reference
 
 note These parse under the full grammar (spec/02) but are not implemented by
-note the single file reference front end, which stops at CIR-D:
+note the single file reference front end, which stops at SIR-D:
 note
 note   set total to
 note     group

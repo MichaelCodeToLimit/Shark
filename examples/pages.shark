@@ -1,9 +1,9 @@
-note A three page application. This is the example from the original Coco
+note A three page application. This is the example from the original Shark
 note concept document, written against the Edition 2026 grammar.
 
 page Home
   in a column spaced 12
-    show text Welcome to Coco
+    show text Welcome to Shark
     show button Get Started to page Level One
 
 page Level One
@@ -19,10 +19,10 @@ page Level Two
 
 note ---------------------------------------------------------------------------
 note The same three pages written with explicit event handlers instead of the
-note `to page` shorthand. Both forms produce identical CIR.
+note `to page` shorthand. Both forms produce identical SIR.
 
 page Home Long Form
-  show text Welcome to Coco
+  show text Welcome to Shark
   show button Get Started named start
 
   when start is pressed

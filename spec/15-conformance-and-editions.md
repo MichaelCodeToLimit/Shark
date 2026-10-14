@@ -4,19 +4,19 @@
 
 ---
 
-## 15.1 What "an Coco implementation" means **[N]**
+## 15.1 What "an Shark implementation" means **[N]**
 
-An implementation may claim conformance with **Coco Edition 2026** if and only if it
+An implementation may claim conformance with **Shark Edition 2026** if and only if it
 satisfies every requirement in §15.2 and passes the suites in §15.3–§15.9.
 
 Partial claims are permitted and must be stated precisely:
 
 | Claim | Requires |
 | --- | --- |
-| **Coco 2026 Core** | §15.2 A–F, suites `lex`, `parse`, `registry`, `types`, `cir` |
-| **Coco 2026 Native** | Core + §15.2 G–J, suites `memory`, `concurrency`, `codegen`, `repro` |
-| **Coco 2026 Full** | Native + §15.2 K–M, suites `stdlib`, `tooling`, `lsp` |
-| **Coco 2026 Multilingual** | any of the above + suite `locale` for each claimed locale |
+| **Shark 2026 Core** | §15.2 A–F, suites `lex`, `parse`, `registry`, `types`, `sir` |
+| **Shark 2026 Native** | Core + §15.2 G–J, suites `memory`, `concurrency`, `codegen`, `repro` |
+| **Shark 2026 Full** | Native + §15.2 K–M, suites `stdlib`, `tooling`, `lsp` |
+| **Shark 2026 Multilingual** | any of the above + suite `locale` for each claimed locale |
 
 An implementation MUST report its claim from `compose version --conformance`.
 
@@ -37,7 +37,7 @@ parser MUST be a function: same bytes, same registry ⇒ same AST.
 **D — Types.** Implements [doc 05](05-types-and-semantics.md), including no implicit
 numeric widening, exhaustive choice matching, and mandatory failure handling.
 
-**E — CIR.** Produces CIR-C per [doc 08](08-cir.md), runs the 24 verifier invariants in
+**E — SIR.** Produces SIR-C per [doc 08](08-sir.md), runs the 24 verifier invariants in
 dev builds, and computes the canonical hash per §8.7.
 
 **F — Diagnostics.** Implements the taxonomy and style rules of
@@ -76,11 +76,11 @@ edition. Each test is a directory:
 
 ```
 conformance/parse/0231-empty-label/
-  input.coco
+  input.shark
   registry.signatures        (optional; defaults to core)
   expected.diagnostics.json
   expected.ast.json          (optional)
-  expected.cir               (optional)
+  expected.sir               (optional)
   expected.hash              (optional)
 ```
 
@@ -104,7 +104,7 @@ compose conformance report --format json
 | `types` | 903 | inference, defaulting, exhaustiveness, abilities, failure handling |
 | `memory` | 517 | storage class decisions, promotion reports, aliasing rejection, cycle handling |
 | `concurrency` | 344 | conflict groups, determinism, reduction reproducibility, race rejection |
-| `cir` | 276 | verifier invariants, canonical ordering, encoding round-trip |
+| `sir` | 276 | verifier invariants, canonical ordering, encoding round-trip |
 | `codegen` | 688 | semantics of every opcode on every claimed target |
 | `repro` | 44 | double-build equality, path/time/env independence, format invariance |
 | `stdlib` | 1 940 | every stable signature |
@@ -150,14 +150,14 @@ implementation is tracked. Measured on a 2024-class 8-core laptop.
 
 ## 15.6 Editions **[N]**
 
-```coco
+```shark
 this is edition 2026
 ```
 
 - A file without an edition directive uses the project's edition; a project without one
   uses the oldest edition the toolchain supports, and warns.
 - An implementation MUST compile every edition it claims, and MUST allow modules of
-  different editions in one program — editions meet at CIR, which is edition-tagged per
+  different editions in one program — editions meet at SIR, which is edition-tagged per
   module.
 - Within an edition, a program's meaning MUST NOT change. Bug fixes that would change
   meaning are gated behind the next edition and reported as `W-1501` until then.
@@ -170,7 +170,7 @@ this is edition 2026
 | Add core signatures | Change the meaning of an existing signature |
 | Change defaults (e.g. warning levels) | Change operator precedence |
 | Remove long-deprecated signatures | Change the canonical hash algorithm without a new hash version tag |
-| Tighten a check that previously warned | Change CIR opcode semantics |
+| Tighten a check that previously warned | Change SIR opcode semantics |
 | Add slot kinds | Reassign a CID |
 
 ### 15.6.2 Migration **[N]**
@@ -205,11 +205,11 @@ The implementation in `reference/` of this repository covers:
 | Member paths (`health of player`) and value splices (`value of score`) | ✔ |
 | Declarations: `page`, `when`, `let`, `keep`, `the message`, layout blocks | ✔ |
 | Locale binding, three locales (en, he, ja), slot-first reordering, splice order | ✔ |
-| CIR-D emission, canonical ordering, canonical hash | ✔ |
+| SIR-D emission, canonical ordering, canonical hash | ✔ |
 | Message plural categories and placeholder checking | ✖ |
 | Records, choices, abilities, `to` definitions, control flow | ✖ |
 | Type checking, ownership and region inference | ✖ |
-| CIR-C, the verifier, the optimiser, code generation | ✖ — see [doc 16](16-roadmap.md) |
+| SIR-C, the verifier, the optimiser, code generation | ✖ — see [doc 16](16-roadmap.md) |
 
 The hash uses BLAKE2b rather than the specified BLAKE3, because BLAKE2b is in the Python
 standard library and the reference has no dependencies; the tag on the hash records
@@ -221,10 +221,10 @@ normative claim per test and cites the section it comes from.
 
 ## 15.9 Trademark and naming **[N]**
 
-An implementation that does not pass the suites it claims may not be called "Coco"
-without qualification. "Coco-compatible" requires passing `lex`, `parse`, `registry`
-and `cir`. This mirrors the practice of other language ecosystems and exists to keep the
-Determinism Rule meaningful — a dialect that guesses is not Coco.
+An implementation that does not pass the suites it claims may not be called "Shark"
+without qualification. "Shark-compatible" requires passing `lex`, `parse`, `registry`
+and `sir`. This mirrors the practice of other language ecosystems and exists to keep the
+Determinism Rule meaningful — a dialect that guesses is not Shark.
 
 ---
 

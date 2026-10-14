@@ -2,7 +2,7 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-Coco is statically and strongly typed with complete local inference. A beginner never
+Shark is statically and strongly typed with complete local inference. A beginner never
 writes a type; a library author writes them only in record fields and public signatures.
 
 ---
@@ -45,7 +45,7 @@ Fixed-width types exist for interop and are spelled out: `whole number of 8 bits
 
 ## 5.2 Declarations **[N]**
 
-```coco
+```shark
 a player has
   health as a whole number starting at 100
   name as text
@@ -66,7 +66,7 @@ a shape is one of
 
 Constructing and matching:
 
-```coco
+```shark
 let hero be a player with
   name as Ada
   health as 120
@@ -80,7 +80,7 @@ if s is a circle
 `if <ref> is a <variant>` is the matching form; inside the body, the variant's fields are
 in scope. Exhaustive matching over all variants:
 
-```coco
+```shark
 for the shape s
   when it is a circle
     give 3.14159 times radius of s times radius of s
@@ -109,7 +109,7 @@ extended with:
   across call boundaries. Bodies are checked in dependency order; recursion requires the
   declaration to state its result type:
 
-```coco
+```shark
 to factorial of a number giving a whole number
   if number is at most 1
     give 1
@@ -135,7 +135,7 @@ signature add
 
 Users write generic actions with `for any`:
 
-```coco
+```shark
 to swap the first and second of a pair for any kind
   ...
 ```
@@ -147,9 +147,9 @@ Monomorphisation is the default; see [doc 09 §9.6](09-compiler-pipeline.md).
 There is **no subtyping** and **no inheritance**. Polymorphism is by:
 
 1. parametric generics (`for any T`);
-2. **abilities** — Coco's trait/interface mechanism:
+2. **abilities** — Shark's trait/interface mechanism:
 
-```coco
+```shark
 an ability to draw needs
   to draw the thing into a surface
 
@@ -164,7 +164,7 @@ to render everything in a list of things that can draw into a surface
 
 Abilities are resolved statically. Dynamic dispatch is available explicitly:
 
-```coco
+```shark
 let shapes be a list of any thing that can draw
 ```
 
@@ -219,7 +219,7 @@ surprising a beginner with `2147483647 plus 1` being negative.
 There are no exceptions with unwinding. Operations that can fail return `maybe T` or a
 `result`:
 
-```coco
+```shark
 let found be first item in list where price of item is less than 10
 
 if found is nothing
@@ -230,7 +230,7 @@ otherwise
 
 For operations that fail with a reason:
 
-```coco
+```shark
 try
   let data be read file scores.txt
   show text value of data
@@ -298,7 +298,7 @@ signatures are marked `declarative`, which means:
 - they MUST be free of `io` and `writes` effects other than through the declared
   `state` mechanism.
 
-```coco
+```shark
 page Profile
   show picture avatar of current user
   show text name of current user
@@ -316,12 +316,12 @@ a page without re-running the user's logic. See [doc 11 §11.1](11-stdlib.md).
 ## 5.12 Modules and visibility **[N]**
 
 - One file = one module. The module's name is its path relative to the project's `source`
-  directory, with separators becoming spaces: `ui/panels/side.coco` → `ui panels side`.
+  directory, with separators becoming spaces: `ui/panels/side.shark` → `ui panels side`.
 - `use ui panels side` imports it.
 - Only `share`d names and signatures are visible to importers.
 - Cyclic `use` between modules is permitted for types and signatures; cyclic *value*
   initialisation is an error (`E-0561`).
-- `use <package> <module>` imports from a dependency declared in `project.coco`.
+- `use <package> <module>` imports from a dependency declared in `project.shark`.
 
 ## 5.13 The prelude **[N]**
 
@@ -332,7 +332,7 @@ The following are visible in every module without `use`:
 `minimum of`, `maximum of`, `absolute value of`, `random number between … and …` (seeded,
 see [doc 11 §11.9](11-stdlib.md)), `now`, `wait for`, plus the control-flow keywords.
 
-A project may disable the prelude with `no prelude` in `project.coco` for embedded targets.
+A project may disable the prelude with `no prelude` in `project.shark` for embedded targets.
 
 ---
 

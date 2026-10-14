@@ -85,7 +85,9 @@ op is at least     = לפחות
 op is at most      = לכל היותר
 op and             = וגם
 op or              = או
-op not             = לא
+note `not` negates a whole comparison, so it reads "it is not true that".
+note Plain לא is the value `no`; spec/04 L2 forbids one phrase for both.
+op not             = לא נכון ש
 
 note ---------------------------------------------------------------- types
 

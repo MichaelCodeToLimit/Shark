@@ -1,8 +1,8 @@
-# 08 — Coco IR (CIR)
+# 08 — Shark IR (SIR)
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-CIR is Coco's own intermediate representation. It is the point at which human language
+SIR is Shark's own intermediate representation. It is the point at which human language
 stops and machine semantics begin, and it is the artefact whose identity proves the
 multilingual claim of [doc 04](04-multilingual.md).
 
@@ -11,15 +11,15 @@ multilingual claim of [doc 04](04-multilingual.md).
 ## 8.1 Position in the pipeline **[I]**
 
 ```
-source ─► tokens ─► AST ─► CIR-D ─► CIR-C ─► MIR ─► Cranelift / LLVM / SPIR-V
+source ─► tokens ─► AST ─► SIR-D ─► SIR-C ─► MIR ─► Cranelift / LLVM / SPIR-V
                             │         │
                     declarative   canonical
                     + imperative   (lowered, typed, SSA)
 ```
 
-- **CIR-D** (*declarative*) preserves pages, handlers, records, choices and effects. It
+- **SIR-D** (*declarative*) preserves pages, handlers, records, choices and effects. It
   is what the LSP, the doc generator, the hot-reload engine and the translator consume.
-- **CIR-C** (*canonical*) is fully lowered, monomorphised, typed, SSA, region-annotated.
+- **SIR-C** (*canonical*) is fully lowered, monomorphised, typed, SSA, region-annotated.
   It is what the optimiser and the back ends consume, and what the canonical hash is
   computed over.
 
@@ -30,11 +30,11 @@ source ─► tokens ─► AST ─► CIR-D ─► CIR-C ─► MIR ─► Cran
 | Locale-free | every node references a CID, never a source lexeme |
 | Order-canonical | declaration order is normalised to a defined total order (§8.6) |
 | Self-describing | every node carries its type and effect set |
-| Round-trippable | CIR-D → source is exact modulo formatting; this is how `compose translate` works |
+| Round-trippable | SIR-D → source is exact modulo formatting; this is how `compose translate` works |
 | Verifiable | a standalone verifier checks 24 invariants (§8.8) |
 | Stable | the binary encoding is versioned and forward-compatible |
 
-## 8.3 CIR-D: the declarative layer **[N]**
+## 8.3 SIR-D: the declarative layer **[N]**
 
 ### 8.3.1 Node vocabulary
 
@@ -54,9 +54,9 @@ ViewNode    ( cid, props, children, key )
 
 ### 8.3.2 Textual form **[I]**
 
-`compose build --emit cir-d` produces:
+`compose build --emit sir-d` produces:
 
-```cir
+```sir
 module app.main edition 2026
   uses core.prelude, core.ui
 
@@ -78,13 +78,13 @@ module app.main edition 2026
 
 Note every identifier is a CID or a quoted *datum*. The word `Welcome` appears only
 inside `const text`, where it is application data, and the word `Start` appears only as
-data and as a view key. No Coco keyword survives into CIR.
+data and as a view key. No Shark keyword survives into SIR.
 
-## 8.4 CIR-C: the canonical layer **[N]**
+## 8.4 SIR-C: the canonical layer **[N]**
 
 ### 8.4.1 Structure
 
-CIR-C is a set of **functions**, each a control-flow graph of **basic blocks** in SSA
+SIR-C is a set of **functions**, each a control-flow graph of **basic blocks** in SSA
 form with block parameters (no phi nodes).
 
 ```
@@ -95,7 +95,7 @@ Value     ( id, type, region )
 
 ### 8.4.2 Instruction set **[N]**
 
-CIR-C has 41 opcodes. They are deliberately few; everything else is a `call` into the
+SIR-C has 41 opcodes. They are deliberately few; everything else is a `call` into the
 runtime or a library, which the optimiser may inline.
 
 **Constants and moves**
@@ -179,7 +179,7 @@ device.exit   device
 handler.park  continuation-id
 ```
 
-### 8.4.3 Types in CIR-C **[N]**
+### 8.4.3 Types in SIR-C **[N]**
 
 ```
 i8 i16 i32 i64   f32 f64   bool   unit
@@ -195,21 +195,21 @@ fn(T…) -> T
 vec<T, n>                 (* SIMD *)
 ```
 
-Generics are gone by CIR-C: monomorphisation happens during AST → CIR-C lowering
+Generics are gone by SIR-C: monomorphisation happens during AST → SIR-C lowering
 ([doc 09 §9.6](09-compiler-pipeline.md)).
 
 ### 8.4.4 Example **[I]**
 
 Source:
 
-```coco
+```shark
 to damage a target by an amount
   set health of target to health of target minus amount
 ```
 
-CIR-C:
+SIR-C:
 
-```cir
+```sir
 function app.main.act.damage
   params  %target : ptr<rec<app.main.rec.player>, %r_act>
           %amount : i64
@@ -230,12 +230,12 @@ Every `Value` carries the region it lives in, and every `Function` declares its 
 parameters. Region well-formedness is invariant **V11** of §8.8: no value may be stored
 into a place whose region strictly outlives it. This is the machine-checkable residue of
 [doc 06 §6.4](06-memory-and-safety.md) — the inference happens on the AST, but the
-*result* is re-verified on CIR-C, so a bug in inference is caught by the verifier rather
+*result* is re-verified on SIR-C, so a bug in inference is caught by the verifier rather
 than producing an unsound binary.
 
 ## 8.6 Canonical ordering **[N]**
 
-For a canonical hash to be meaningful, CIR-C must be ordered by a rule that depends only
+For a canonical hash to be meaningful, SIR-C must be ordered by a rule that depends only
 on the program's meaning. The canonicalisation pass applies, in order:
 
 1. **Module order** — by module CID, byte-lexicographic.
@@ -253,18 +253,18 @@ on the program's meaning. The canonicalisation pass applies, in order:
 8. **Region names** — renumbered by first use under the block order.
 
 Source coordinates, comments, locale, and original identifier spellings are **excluded**
-from CIR-C; they live in a side-table (§8.9) that does not participate in the hash.
+from SIR-C; they live in a side-table (§8.9) that does not participate in the hash.
 
 ## 8.7 The canonical hash **[N]**
 
 ```
-canonical_hash(program) = BLAKE3-256( canonical_encoding(CIR-C) )
+canonical_hash(program) = BLAKE3-256( canonical_encoding(SIR-C) )
 ```
 
 Normative requirements:
 
 1. `canonical_encoding` is the binary encoding of §8.10 applied to the canonically
-   ordered CIR-C.
+   ordered SIR-C.
 2. Two programs with the same canonical hash MUST compile to identical output for the
    same target, options and toolchain version.
 3. **Locale invariance**: for any well-formed source *S* and any locales *A*, *B*,
@@ -273,20 +273,20 @@ Normative requirements:
    lines, and renaming a *local* binding MUST NOT change the hash. (Renaming a *shared*
    name does change it, because the name is part of the module's interface.)
 5. The hash is printed by `compose build --print-hash` and embedded in the output binary's
-   `.coco.hash` section, so a shipped binary can be matched to its source.
+   `.shark.hash` section, so a shipped binary can be matched to its source.
 
 ### 8.7.1 The equivalence proof in practice **[I]**
 
 ```bash
-$ compose build examples/hello.coco --print-hash
+$ compose build examples/hello.shark --print-hash
 b3:9f4c1e...7a20
 
-$ compose translate examples/hello.coco --to hebrew --out /tmp/hello.he.coco
-$ compose build /tmp/hello.he.coco --print-hash
+$ compose translate examples/hello.shark --to hebrew --out /tmp/hello.he.shark
+$ compose build /tmp/hello.he.shark --print-hash
 b3:9f4c1e...7a20
 
-$ compose translate examples/hello.coco --to japanese --out /tmp/hello.ja.coco
-$ compose build /tmp/hello.ja.coco --print-hash
+$ compose translate examples/hello.shark --to japanese --out /tmp/hello.ja.shark
+$ compose build /tmp/hello.ja.shark --print-hash
 b3:9f4c1e...7a20
 ```
 
@@ -294,12 +294,12 @@ The reference implementation in this repository demonstrates this for the subset
 covers:
 
 ```bash
-python reference/coco_ref.py --prove-locale-equivalence
+python reference/shark_ref.py --prove-locale-equivalence
 ```
 
 ## 8.8 Verifier invariants **[N]**
 
-An implementation MUST include an CIR-C verifier, MUST run it on every build in
+An implementation MUST include an SIR-C verifier, MUST run it on every build in
 `compose` (dev) mode, and SHOULD run it in release mode behind a flag. It checks:
 
 | # | Invariant |
@@ -334,7 +334,7 @@ with a reproduction bundle and the canonical hash.
 
 ## 8.9 Side tables **[N]**
 
-CIR-C carries, outside the hashed region:
+SIR-C carries, outside the hashed region:
 
 | Table | Contents |
 | --- | --- |
@@ -351,7 +351,7 @@ binaries unless `keep debug information` is set.
 ## 8.10 Binary encoding **[N]**
 
 ```
-cir-file    = magic , version , section+ ;
+sir-file    = magic , version , section+ ;
 magic       = "CIRC" ;                          (* 0x43 49 52 43 *)
 version     = u16 major , u16 minor ;
 section     = kind:u8 , length:u32 , payload:bytes ;
@@ -381,12 +381,12 @@ opcode is an error.
    LLVM IR's ordering is not stable enough to hash for this purpose.
 2. **The declarative layer has no LLVM analogue.** Pages, views, handlers and effect sets
    must survive to the runtime and the tooling.
-3. **Region and effect information is first class** in CIR and would be lost in LLVM
+3. **Region and effect information is first class** in SIR and would be lost in LLVM
    metadata, which optimisation passes may legally drop.
 4. **Multiple back ends.** Cranelift for dev, LLVM for release, SPIR-V/WGSL for devices,
-   and a portable CIR interpreter for bootstrapping. A neutral IR is the only sane way to
+   and a portable SIR interpreter for bootstrapping. A neutral IR is the only sane way to
    feed all four.
-5. **Hot reload** ([doc 12 §12.7](12-toolchain.md)) diffs CIR-D between builds to decide
+5. **Hot reload** ([doc 12 §12.7](12-toolchain.md)) diffs SIR-D between builds to decide
    what can be swapped live.
 
 ---

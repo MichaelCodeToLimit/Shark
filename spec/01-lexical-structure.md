@@ -3,7 +3,7 @@
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
 The lexer's job in a punctuation-free language is unusual: it must produce a token
-stream that a parser can consume without ever guessing where a string "starts". Coco
+stream that a parser can consume without ever guessing where a string "starts". Shark
 solves this by making the lexer produce only **word-level** tokens and by deferring all
 grouping of words into text to the parser, which knows the clause signature and therefore
 knows exactly where each slot ends.
@@ -18,7 +18,7 @@ knows exactly where each slot ends.
 - A source file MUST be valid UTF-8. A byte-order mark, if present, MUST be ignored.
 - A source file MUST be normalised to Unicode **NFC** before lexing. An implementation
   MUST normalise on read rather than rejecting non-NFC input.
-- File extension: `.coco`. Manifest files use the same grammar and are named `project.coco`.
+- File extension: `.shark`. Manifest files use the same grammar and are named `project.shark`.
 - Line terminators: `LF` (U+000A), `CRLF`, `CR`, `NEL` (U+0085), `LS` (U+2028), `PS`
   (U+2029). All are normalised to a single `NEWLINE` token.
 - The file MUST end with a `NEWLINE`; an implementation MUST synthesise one if absent.
@@ -45,7 +45,7 @@ ordinary `WORD` tokens; their role is decided by the parser.
 
 ## 1.3 Character classes **[N]**
 
-Two classes matter, and the distinction between them is where Coco's
+Two classes matter, and the distinction between them is where Shark's
 "no punctuation" rule actually lives.
 
 ```
@@ -84,19 +84,19 @@ The restriction is applied by the **parser**, which knows each token's role:
 
 So this is fine:
 
-```coco
+```shark
 show text Welcome to my app, 100% of the time — press {Start}
 ```
 
 and this is not:
 
-```coco
+```shark
 page Home{2}
 note E-0101  `Home{2}` cannot be a name: `{` and `}` are not name characters.
 ```
 
 The practical consequence is exactly the intended one: `{`, `}`, `(`, `)`, `;`, `=`,
-`<`, `>` and friends never carry meaning in Coco. They are ordinary text characters
+`<`, `>` and friends never carry meaning in Shark. They are ordinary text characters
 when they appear in text and are rejected everywhere else.
 
 ## 1.4 Word segmentation **[N]**
@@ -117,7 +117,7 @@ programmers will experience.
 ### 1.4.2 Unsegmented scripts **[N]**
 
 Han, Hiragana, Katakana, Thai, Lao, Khmer, Myanmar, Tibetan and Javanese runs contain no
-inter-word separators. Coco does **not** use a statistical word-breaker for these,
+inter-word separators. Shark does **not** use a statistical word-breaker for these,
 because that would violate the Determinism Rule. It uses **keyword-maximal-munch against
 a finite lexicon**:
 
@@ -201,7 +201,7 @@ readability and can never change a program's meaning.
 
 A **note** is a comment:
 
-```coco
+```shark
 note this whole line is ignored by the compiler
 ```
 
@@ -212,7 +212,7 @@ punctuation. Notes may be indented to any level; their indentation is ignored.
 
 A **doc note** is a note used for documentation extraction:
 
-```coco
+```shark
 note doc Damages a target and returns the remaining health.
 to damage a target by an amount
   ...
@@ -245,7 +245,7 @@ takes its remaining slots from the following **indented** lines (the *hanging fo
 A text block is the universal escape hatch required by the Sugar Law. It is introduced
 by a bare `text` keyword occupying the whole of a slot, followed by an indented body:
 
-```coco
+```shark
 set banner to text
   Welcome! You have 100% of your health.
   Press "Start" — or go to page 2 of the manual.
@@ -259,7 +259,7 @@ Rules:
 - The block ends at the first line whose indentation is less than the block's level, or
   at `EOF`.
 - Inside a `RAWLINE`, **no** character is illegal, no keyword is recognised, no splice is
-  performed, and no case folding occurs. This is the only place in Coco where
+  performed, and no case folding occurs. This is the only place in Shark where
   arbitrary bytes may appear.
 - Lines are joined with a single `U+000A`. A trailing newline is not added.
 - Blank lines inside the block are preserved as empty `RAWLINE`s.
@@ -269,7 +269,7 @@ Rules:
 Values are inserted into ordinary (non-block) `text` slots by the reserved two-word
 splice phrase `value of`:
 
-```coco
+```shark
 show text Your score is value of score
 show text Hello value of name and welcome back
 ```
@@ -283,7 +283,7 @@ show text Hello value of name and welcome back
 - Splices are **not** performed inside `RAWLINE`s. To build text from a block plus a
   value, use `join`:
 
-```coco
+```shark
 set message to join
   text
     Final score:
@@ -296,8 +296,8 @@ compile time.
 
 ## 1.8 Bidirectional text **[N]**
 
-Coco source in Hebrew, Arabic, Persian, Urdu, Syriac and Thaana is written
-right-to-left. This has **no effect on the language**, because Coco is defined over
+Shark source in Hebrew, Arabic, Persian, Urdu, Syriac and Thaana is written
+right-to-left. This has **no effect on the language**, because Shark is defined over
 *logical* character order, exactly as every other programming language is.
 
 Normative rules:
@@ -316,18 +316,18 @@ Normative rules:
    comparison. They let an author fix rendering of mixed-direction lines without
    affecting meaning.
 5. A source file MAY declare a base direction for tooling:
-   ```coco
+   ```shark
    write in hebrew
    ```
    This sets both the locale ([doc 04](04-multilingual.md)) and the base paragraph
    direction used by `compose format` and by editors via the LSP
-   `coco/documentDirection` notification. It does not affect compilation.
+   `shark/documentDirection` notification. It does not affect compilation.
 6. `compose format` emits an `U+2066 LRI … U+2069 PDI` pair **only inside comments and
    only in its own diagnostic output**, never in source.
 
 ### 1.8.1 Worked example **[I]**
 
-```coco
+```shark
 write in hebrew
 
 עמוד ראשי

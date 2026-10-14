@@ -1,0 +1,10 @@
+note Converted from the Lapis prototype, attic/lapis/app_page1.lp.
+note
+note A stand-in for page One of app.shark. In Lapis it pointed at a Dashboard
+note page that did not exist in the same file; in Shark, `use app` brings it in.
+
+use app
+
+page One
+  show text Welcome to Standalone Page 1
+  show button Return to page Dashboard

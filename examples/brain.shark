@@ -2,11 +2,11 @@ note ---------------------------------------------------------------------------
 note This file is a specification illustration. It uses record declarations,
 note abilities and control flow, which the single file reference front end does
 note not implement yet (see spec/15 section 15.8). Programs that the reference
-note can compile today are hello.coco, tour*.coco, pages.coco and ambiguity.coco.
+note can compile today are hello.shark, tour*.shark, pages.shark and ambiguity.shark.
 note ---------------------------------------------------------------------------
 
 note A neural network, written in the same language as the interface and the
-note server. The compiler differentiates the forward pass directly from CIR,
+note server. The compiler differentiates the forward pass directly from SIR,
 note so a hand written layer is differentiable with no registration step.
 
 use tensor
@@ -33,7 +33,7 @@ to train the brain on a corpus
 
 note --------------------------------------------------------------- a custom layer
 
-note Nothing here is special to the framework. It is ordinary Coco over
+note Nothing here is special to the framework. It is ordinary Shark over
 note tensors, and `train` will differentiate it.
 
 to apply a swiglu to an input with a gate weight and an up weight

@@ -2,7 +2,7 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-This document gives the complete syntax of Coco. It is deliberately short: the
+This document gives the complete syntax of Shark. It is deliberately short: the
 grammar is small because the *registry* ([doc 03](03-clause-registry.md)) carries the
 variety that other languages put in their grammars.
 
@@ -99,7 +99,7 @@ article        = "a" | "an" | "the" ;
 
 ### 2.3.1 Examples **[I]**
 
-```coco
+```shark
 a player has
   health as a whole number starting at 100
   name as text
@@ -188,7 +188,7 @@ choices matter:
 When a label genuinely needs to contain a terminator phrase, the Sugar Law applies —
 use the explicit form:
 
-```coco
+```shark
 show button
   label
     Go to page 2 of the manual
@@ -227,7 +227,7 @@ try-statement  = "try" , NEWLINE , body ,
 
 #### Example **[I]**
 
-```coco
+```shark
 if health of player is less than 1
   open page Game Over
 otherwise if health of player is less than 20
@@ -247,7 +247,7 @@ repeat 3 times
 
 `ref-path` uses the particle `of` for member access, read **outermost first**:
 
-```coco
+```shark
 health of player            note the health field of player
 name of owner of shop       note ((shop.owner).name)
 ```
@@ -269,7 +269,7 @@ Resolution rules:
 If a clause reaches `NEWLINE` with unfilled slots and the next line is indented, the
 remaining slots are read from the indented block, one **labelled segment** per line:
 
-```coco
+```shark
 show button
   label
     Start
@@ -286,13 +286,13 @@ convenience form desugars to, and it is what the compiler shows in fix-its.
 A signature whose final slot is a `block` MAY take its body as the single following
 statement at the *same* indentation level:
 
-```coco
+```shark
 when Start is pressed
 open page Game
 ```
 
 This is exactly one statement, never more. It exists so the prose style of the original
-Coco concept remains valid. `compose format` rewrites it to the indented form.
+Shark concept remains valid. `compose format` rewrites it to the indented form.
 Implementations MUST accept it and MUST NOT treat a second flush line as part of the
 body.
 
@@ -301,7 +301,7 @@ body.
 There are no parentheses. Sub-expressions that need explicit grouping are indented under
 the word `group`:
 
-```coco
+```shark
 set total to
   group
     base plus bonus
@@ -390,7 +390,7 @@ type-name      = "whole" , "number"
 Type annotations are **never required** in bodies. They appear only in record fields and
 optionally in action parameters for documentation:
 
-```coco
+```shark
 to move a player by an amount as a decimal number
   ...
 ```
@@ -398,7 +398,7 @@ to move a player by an amount as a decimal number
 ## 2.9 Complete grammar, collected **[N]**
 
 ```ebnf
-(* ============ Coco Edition 2026 — collected grammar ============ *)
+(* ============ Shark Edition 2026 — collected grammar ============ *)
 
 program            = { NEWLINE } , { top-level } , EOF ;
 top-level          = directive | declaration | statement ;
@@ -485,7 +485,7 @@ locale-name        = WORD ;
 
 Source:
 
-```coco
+```shark
 show button Get Started to page Level One
 ```
 

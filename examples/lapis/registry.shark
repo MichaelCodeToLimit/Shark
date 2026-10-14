@@ -1,0 +1,17 @@
+note Converted from the Lapis prototype, attic/lapis/registry.lp, whose only
+note entry was
+note   command to page (page) (moves to specified page)
+note
+note Shark builds this in, so the file now shows the two built-in ways to move
+note between pages instead of declaring anything.
+
+page Start
+  show text Two ways to change page
+  show button Continue to page Finish
+
+page Finish
+  show text You arrived by the button's own `to page` ending
+  show button Back
+
+  when Back is pressed
+    open page Start

@@ -6,10 +6,10 @@
 
 ## 10.1 Target triples **[N]**
 
-Coco uses conventional triples, written punctuation-free in `project.coco` and with
+Shark uses conventional triples, written punctuation-free in `project.shark` and with
 hyphens on the command line:
 
-```coco
+```shark
 targets
   x86 64 windows
   x86 64 linux gnu
@@ -43,9 +43,9 @@ compose target add wasm32-browser
 | **LLVM** | `release`, `extreme`, `small` | best-in-class optimisation, LTO, PGO, mature target coverage |
 | **SPIR-V** | Vulkan device code | standard, consumed by Vulkan and by `naga` for portability |
 | **WGSL** | WebGPU device code | browser targets |
-| **CIR interpreter** | bootstrap, const-eval, replay | no native codegen dependency |
+| **SIR interpreter** | bootstrap, const-eval, replay | no native codegen dependency |
 
-Both CPU back ends consume **MIR**, a thin target-shaped layer below CIR-C, so back-end
+Both CPU back ends consume **MIR**, a thin target-shaped layer below SIR-C, so back-end
 specific work is not duplicated. Adding a third CPU back end means writing one MIR
 lowering.
 
@@ -55,7 +55,7 @@ of [doc 09 §9.2](09-compiler-pipeline.md) is hard to hit otherwise.
 
 ## 10.3 MIR **[N]**
 
-MIR differs from CIR-C in that it has:
+MIR differs from SIR-C in that it has:
 
 - explicit stack slots and calling-convention-shaped call sites;
 - target integer/pointer widths resolved;
@@ -68,7 +68,7 @@ MIR is not canonical and is not hashed.
 
 ## 10.4 Runtime **[N]**
 
-The Coco runtime is a static library linked into every program. It is **small by
+The Shark runtime is a static library linked into every program. It is **small by
 design** and layered so embedded and WASM targets can omit layers.
 
 | Layer | Size (x86-64, release, approx) | Contents | Omittable |
@@ -97,7 +97,7 @@ Hello-world binary sizes (targets, not guarantees): **x86-64 Linux ≈ 64 KB str
 
 There is no interpreter loop, no JIT warm-up, no GC safepoint polling, and no
 per-allocation bookkeeping for classes 1–3 of the storage ladder. A tight numeric loop
-in Coco compiles to the same machine code you would get from C, because by the time
+in Shark compiles to the same machine code you would get from C, because by the time
 MIR is reached the region and aliasing facts are stronger than C's.
 
 ## 10.5 GPU and device targets **[N]**
@@ -111,7 +111,7 @@ allocation, no `trusted` operations.
 ### 10.5.2 Lowering
 
 ```
-CIR-C device region ─► device MIR ─► SPIR-V   (Vulkan, native)
+SIR-C device region ─► device MIR ─► SPIR-V   (Vulkan, native)
                                   └► WGSL     (WebGPU, browser)
 ```
 
@@ -126,7 +126,7 @@ CIR-C device region ─► device MIR ─► SPIR-V   (Vulkan, native)
 
 ### 10.5.3 Transfers **[N]**
 
-Every value crossing a device boundary is an explicit transfer in CIR-C
+Every value crossing a device boundary is an explicit transfer in SIR-C
 (`device.enter … transfers …`). The compiler:
 
 - elides transfers for values already resident (tracked per buffer across regions);
@@ -136,7 +136,7 @@ Every value crossing a device boundary is an explicit transfer in CIR-C
 
 ### 10.5.4 Tensors **[I]**
 
-The `tensor` module ([doc 11 §11.8](11-stdlib.md)) is ordinary Coco over device
+The `tensor` module ([doc 11 §11.8](11-stdlib.md)) is ordinary Shark over device
 regions; there is no special tensor compiler. Fusion of elementwise chains, tiling of
 matrix multiplies and kernel selection are the loop-nest optimiser
 ([doc 09 §9.5](09-compiler-pipeline.md)) applied to device MIR, plus a small library of
@@ -148,24 +148,24 @@ hand-tuned microkernels selected by shape.
 | --- | --- |
 | Memory model | `wasm32` linear memory; `memory64` behind a flag |
 | Threads | `wasm32-browser` uses shared memory + atomics when `crossOriginIsolated`; otherwise the scheduler degrades to a single worker and reports `I-1061` |
-| GC proposal | not used — Coco manages its own memory |
+| GC proposal | not used — Shark manages its own memory |
 | Exceptions | not used — traps become `unreachable` with a side table mapping to reason codes |
 | Host interface | `wasm32-browser`: generated JS glue, with the whole `ui`/`draw` layer targeting WebGPU + Canvas. `wasm32-wasi`: WASI preview 2 components |
 | Component model | `compose release --target wasm32-wasi --component` emits a WIT-described component |
 
 The `ui` module's browser back end renders to **Canvas/WebGPU**, not to the DOM. This is
-deliberate: Coco's view model is its own, and mapping it onto HTML/CSS would
+deliberate: Shark's view model is its own, and mapping it onto HTML/CSS would
 reintroduce the six-language problem Rule 5 exists to remove. A DOM back end is available
 as an opt-in package for accessibility-sensitive applications and is required to be used
 when `accessibility native` is set.
 
 ## 10.7 The C ABI **[N]**
 
-Coco's foreign interface is `coco_abi_v1`, a C ABI.
+Shark's foreign interface is `shark_abi_v1`, a C ABI.
 
 ### 10.7.1 Calling out
 
-```coco
+```shark
 this module is trusted because it wraps libsqlite3
 
 the foreign library sqlite3
@@ -178,7 +178,7 @@ to open a database at a path giving a whole number
 
 ### 10.7.2 Type mapping **[N]**
 
-| Coco | C |
+| Shark | C |
 | --- | --- |
 | `whole number` | `int64_t` |
 | `whole number of 32 bits` | `int32_t` |
@@ -195,28 +195,28 @@ free to reorder and to pick struct-of-arrays.
 
 ### 10.7.3 Calling in **[N]**
 
-```coco
-share as a c function coco_add
+```shark
+share as a c function shark_add
 to add a first and a second giving a whole number
   give first plus second
 ```
 
-produces `int64_t coco_add(int64_t, int64_t)` and a generated header. Coco
+produces `int64_t shark_add(int64_t, int64_t)` and a generated header. Shark
 functions exposed this way:
 
 - must not have `blocks` effects unless the caller drives the scheduler via
-  `coco_runtime_poll`;
+  `shark_runtime_poll`;
 - trap on overflow, which calls the installed trap handler rather than unwinding into C;
-- may be called before `coco_runtime_start` only if they are `pure`.
+- may be called before `shark_runtime_start` only if they are `pure`.
 
 ### 10.7.4 Runtime entry points **[N]**
 
 ```c
-int  coco_runtime_start(int argc, char** argv);
-void coco_runtime_stop(void);
-int  coco_runtime_poll(void);          /* drive one scheduler turn */
-void coco_set_trap_handler(void (*h)(int32_t reason, const char* where));
-void coco_set_allocator(const coco_allocator_v1* a);
+int  shark_runtime_start(int argc, char** argv);
+void shark_runtime_stop(void);
+int  shark_runtime_poll(void);          /* drive one scheduler turn */
+void shark_set_trap_handler(void (*h)(int32_t reason, const char* where));
+void shark_set_allocator(const shark_allocator_v1* a);
 ```
 
 ## 10.8 Traps and process behaviour **[N]**
@@ -249,7 +249,7 @@ case, because staging reuses the region's copy-on-write chunks.
 
 Staging is enabled by declaring the handler `isolated`:
 
-```coco
+```shark
 when a request arrives isolated
   ...
 ```
@@ -261,8 +261,8 @@ when a request arrives isolated
 - Cross-compilation: `compose target add` downloads a pinned, hash-verified sysroot.
   Cross builds are reproducible and do not require a host toolchain of the target OS
   except where a platform SDK is legally required (iOS, macOS signing).
-- Output: a single executable, plus `app.coco.hash`, plus optional split debug info
-  (`app.cocodbg`).
+- Output: a single executable, plus `app.shark.hash`, plus optional split debug info
+  (`app.sharkdbg`).
 - `compose bundle` produces platform packages (`.app`, `.msix`, `.apk`, `.wasm` + loader).
 
 ---

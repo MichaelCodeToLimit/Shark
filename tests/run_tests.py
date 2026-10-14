@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Conformance tests for the Coco reference front end.
+Conformance tests for the Shark reference front end.
 
     python tests/run_tests.py
 
@@ -18,7 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "reference"))
 
-import coco_ref as coco  # noqa: E402
+import shark_ref as shark  # noqa: E402
 
 for stream in (sys.stdout, sys.stderr):
     try:
@@ -37,7 +37,7 @@ def test(name: str, spec_ref: str):
 
 
 def compile_text(source: str):
-    return coco.compile_source(source, "<test>")
+    return shark.compile_source(source, "<test>")
 
 
 def first(items):
@@ -64,12 +64,12 @@ def text_of(node, slot):
 
 @test("registry is admissible in every shipped locale", "spec/03 section 3.6")
 def _():
-    raw, _particles = coco.load_registry()
+    raw, _particles = shark.load_registry()
     assert raw, "core registry is empty"
-    for tag in sorted(f[:-7] for f in os.listdir(coco.LOCALE_DIR)
+    for tag in sorted(f[:-7] for f in os.listdir(shark.LOCALE_DIR)
                       if f.endswith(".locale")):
-        locale = coco.load_locale(tag)
-        registry = coco.BoundRegistry(raw, locale)
+        locale = shark.load_locale(tag)
+        registry = shark.BoundRegistry(raw, locale)
         problems = registry.check_admissibility()
         assert not problems, f"{tag}: {problems}"
 
@@ -77,9 +77,9 @@ def _():
 @test("every core signature is bound in every locale (condition L1)",
       "spec/04 section 4.3.1")
 def _():
-    raw, _particles = coco.load_registry()
+    raw, _particles = shark.load_registry()
     for tag in ("en", "he", "ja"):
-        locale = coco.load_locale(tag)
+        locale = shark.load_locale(tag)
         missing = [cid for cid in raw if cid not in locale.stmts]
         assert not missing, f"{tag} is missing {missing}"
 
@@ -87,7 +87,7 @@ def _():
 @test("two signature CIDs may not share a head (condition L2)",
       "spec/04 section 4.3.1")
 def _():
-    locale = coco.load_locale("en")
+    locale = shark.load_locale("en")
     heads = {}
     for cid, phrase in locale.stmts.items():
         key = " ".join(phrase)
@@ -109,7 +109,7 @@ def _():
 def _():
     try:
         compile_text("page Home\n\tshow text Hi\n")
-    except coco.CocoError as err:
+    except shark.SharkError as err:
         assert err.code == "E-0110", err.code
         return
     raise AssertionError("expected E-0110")
@@ -119,7 +119,7 @@ def _():
 def _():
     try:
         compile_text("show text Hi‮ there\n")
-    except coco.CocoError as err:
+    except shark.SharkError as err:
         assert err.code == "E-0115", err.code
         return
     raise AssertionError("expected E-0115")
@@ -199,7 +199,7 @@ def _():
 def _():
     try:
         compile_text("show button to page Home\n")
-    except coco.CocoError as err:
+    except shark.SharkError as err:
         assert err.code == "E-0231", err.code
         return
     raise AssertionError("expected E-0231")
@@ -297,7 +297,7 @@ def _():
 def _():
     try:
         compile_text("keep a as 1\nlet x be a is less than 2 is less than 3\n")
-    except coco.CocoError as err:
+    except shark.SharkError as err:
         assert err.code == "E-0252", err.code
         return
     raise AssertionError("expected E-0252")
@@ -318,8 +318,8 @@ def _():
       "spec/04 section 4.11, spec/08 section 8.7")
 def _():
     hashes = {}
-    for tag, path in coco.TOUR_FILES.items():
-        hashes[tag] = coco.compile_file(path).hash
+    for tag, path in shark.TOUR_FILES.items():
+        hashes[tag] = shark.compile_file(path).hash
     assert len(set(hashes.values())) == 1, hashes
 
 
@@ -386,8 +386,8 @@ def _():
 @test("a splice may follow its reference where the locale says so",
       "spec/04 section 4.7.4")
 def _():
-    assert coco.load_locale("en").splice_order == "marker first"
-    assert coco.load_locale("ja").splice_order == "ref first"
+    assert shark.load_locale("en").splice_order == "marker first"
+    assert shark.load_locale("ja").splice_order == "ref first"
     comp = compile_text("""write in japanese
 
 greeting というメッセージ の内容は
@@ -404,8 +404,8 @@ greeting の値 という文字を表示
 def _():
     hashes = {}
     for tag in ("", ".he", ".ja"):
-        path = os.path.join(ROOT, "examples", "greeting" + tag + ".coco")
-        hashes[tag or "en"] = coco.compile_file(path).hash
+        path = os.path.join(ROOT, "examples", "greeting" + tag + ".shark")
+        hashes[tag or "en"] = shark.compile_file(path).hash
     assert len(set(hashes.values())) == 1, hashes
 
 
@@ -418,19 +418,19 @@ def _():
     checked = 0
     skipped = []
     for name in sorted(os.listdir(directory)):
-        if not name.endswith(".coco"):
+        if not name.endswith(".shark"):
             continue
         path = os.path.join(directory, name)
         try:
-            coco.compile_file(path)
+            shark.compile_file(path)
             checked += 1
-        except coco.CocoError as err:
+        except shark.SharkError as err:
             skipped.append(f"{name}: {err.code} {err.message}")
     assert checked >= 6, f"only {checked} examples compiled"
-    # game.coco, social.coco and brain.coco use constructs beyond the reference
+    # game.shark, social.shark and brain.shark use constructs beyond the reference
     # front end; they are specification illustrations.
     for entry in skipped:
-        assert entry.split(":")[0] in ("game.coco", "social.coco", "brain.coco"), entry
+        assert entry.split(":")[0] in ("game.shark", "social.shark", "brain.shark"), entry
 
 
 def main() -> int:

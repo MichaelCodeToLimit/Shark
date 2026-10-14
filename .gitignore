@@ -1,8 +1,8 @@
-# Coco build outputs
-.coco/
+# Shark build outputs
+.shark/
 target/
-*.cocodbg
-*.cocorec
+*.sharkdbg
+*.sharkrec
 
 # Python bytecode from the reference implementation
 __pycache__/

@@ -2,7 +2,7 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-Coco's claim is that the same program can be written in English, Hebrew, Japanese,
+Shark's claim is that the same program can be written in English, Hebrew, Japanese,
 Arabic or Spanish and compile to **byte-identical** output. This document specifies the
 mechanism that makes that true rather than aspirational.
 
@@ -13,7 +13,7 @@ mechanism that makes that true rather than aspirational.
 ```
   English source ─┐
   Hebrew source  ─┤                        ┌─ x86-64
-  Japanese source ┼─► Locale Binding ──► Canonical CIR ──►┼─ ARM64
+  Japanese source ┼─► Locale Binding ──► Canonical SIR ──►┼─ ARM64
   Arabic source  ─┤     (lexeme → ID)      (opcode IDs)   ├─ WASM
   Spanish source ─┘                        ▲              └─ SPIR-V
                                            │
@@ -148,12 +148,12 @@ comments, is in the file's locale.
 Resolution order, first hit wins:
 
 1. `write in <locale>` directive anywhere in the file.
-2. `locale` field in `project.coco` for the module's directory.
-3. The `COCO_LOCALE` environment variable.
+2. `locale` field in `project.shark` for the module's directory.
+3. The `SHARK_LOCALE` environment variable.
 4. `en`.
 
 A **file** has exactly one locale. A **project** may mix locales across files freely —
-they meet at the CIR level, so a Hebrew module and a Japanese module link without any
+they meet at the SIR level, so a Hebrew module and a Japanese module link without any
 bridging code. Names declared in one file and `share`d are visible in another file in a
 different locale **by their canonical name** (§4.8).
 
@@ -166,9 +166,9 @@ locale-level requirements are:
    `compose format`, `compose doc`, and diagnostics.
 2. Diagnostics rendered for an RTL locale MUST isolate embedded LTR spans (file paths,
    CIDs, numbers) with `U+2066 LRI … U+2069 PDI` so the message renders correctly in a
-   terminal. This is the one place Coco emits bidi controls.
+   terminal. This is the one place Shark emits bidi controls.
 3. Column numbers in diagnostics are **logical** code-point offsets. Editors receive an
-   additional `visualColumn` via the LSP extension `coco/bidiColumn`
+   additional `visualColumn` via the LSP extension `shark/bidiColumn`
    ([doc 13 §13.6](13-lsp.md)) for caret placement.
 4. Indentation is written at the **logical start** of the line, which every RTL-aware
    editor renders on the right. No special handling is needed.
@@ -188,7 +188,7 @@ locale ar
   stmt core.event.is_pressed = ضُغط
 ```
 
-```coco
+```shark
 write in arabic
 
 صفحة الرئيسية
@@ -205,7 +205,7 @@ A locale declares `decimal separator` and `group separator`. These affect **only
 numeric literals in source (§1.5) and the compiler's rendering of numbers in
 diagnostics. They do **not** affect:
 
-- the CIR, which stores numbers as IEEE-754 binary64 / two's-complement integers;
+- the SIR, which stores numbers as IEEE-754 binary64 / two's-complement integers;
 - runtime formatting, which is controlled by the application's runtime locale via
   `format value with locale` in the `text` module.
 
@@ -263,7 +263,7 @@ signature core.stmt.show_text
 
 Source:
 
-```coco
+```shark
 write in japanese
 
 ページ ホーム
@@ -282,7 +282,7 @@ Trace of line 3 (`こんにちはという文字を表示`):
 | 5 | `という文字を表示` matches | `WORD("こんにちは")`, then `WORD("という文字を表示")` |
 
 The parser sees a slot-first signature: `content` = `こんにちは`, head =
-`という文字を表示`. Identical CIR to `show text Hi`.
+`という文字を表示`. Identical SIR to `show text Hi`.
 
 ### 4.7.2 Slot-first signatures **[N]**
 
@@ -340,9 +340,9 @@ Both forms lower to the identical splice node, so a text slot containing a splic
 the same canonical form in every locale. A locale MUST NOT introduce any other splice
 syntax.
 
-This is the feature that makes Coco genuinely multilingual rather than
+This is the feature that makes Shark genuinely multilingual rather than
 "English with a translated dictionary": SOV languages get SOV signatures, VSO languages
-get VSO signatures, and all of them produce the same CIR.
+get VSO signatures, and all of them produce the same SIR.
 
 ## 4.8 Names across locales **[N]**
 
@@ -353,7 +353,7 @@ module as `עמוד ראשי`.
 To allow cross-locale libraries, a declaration may carry an explicit CID and per-locale
 names:
 
-```coco
+```shark
 note doc The main landing page.
 page Home
   also known as עמוד ראשי in hebrew
@@ -365,7 +365,7 @@ Rules:
 
 - `also known as <name> in <locale>` adds an alias visible only when that locale is
   active.
-- All aliases of a declaration share one CID, so they are the same entity in CIR.
+- All aliases of a declaration share one CID, so they are the same entity in SIR.
 - Aliases participate in R6 and L2 checks in their own locale.
 - `compose doc` lists all aliases.
 
@@ -376,7 +376,7 @@ translating a source file between locales is a **total, information-preserving,
 mechanical** operation:
 
 ```bash
-compose translate app.coco --to hebrew --out app.he.coco
+compose translate app.shark --to hebrew --out app.he.shark
 ```
 
 Normative requirements for `compose translate`:
@@ -402,7 +402,7 @@ and by `compose translate --verify`, which compiles both and compares hashes.
 compose locale new pt            # scaffold registry/locales/pt.locale with every CID unbound
 compose locale check pt          # L1..L5
 compose locale coverage pt       # percentage of core + stdlib CIDs bound
-compose translate examples/hello.coco --to pt --verify
+compose translate examples/hello.shark --to pt --verify
 ```
 
 A locale is complete when `compose locale coverage` reports 100% for `core`, and is
@@ -419,10 +419,10 @@ To keep Rule 3 of [doc 00](00-overview.md) intact:
   effects.
 - A locale MUST NOT change operator precedence.
 - A locale MUST NOT change evaluation order.
-- A locale MUST NOT affect the CIR in any way other than through the source that
+- A locale MUST NOT affect the SIR in any way other than through the source that
   produced it.
 
-An implementation MUST be able to demonstrate this: `compose build --emit cir` output is
+An implementation MUST be able to demonstrate this: `compose build --emit sir` output is
 required to be byte-identical across locales for translated sources, and this is a
 conformance test.
 
@@ -433,12 +433,12 @@ conformance test.
 ## 4.12 Localising what the application says **[N]**
 
 Everything above is about the language the **programmer** writes in. This section is
-about the language the **user** reads. They are separate problems and Coco keeps them
+about the language the **user** reads. They are separate problems and Shark keeps them
 separate, because conflating them is the single most common mistake in this area.
 
 ### 4.12.1 The distinction **[I]**
 
-```coco
+```shark
 show text Hi
 ```
 
@@ -451,7 +451,7 @@ so, in the program, in every language it supports.
 
 A **message** is one idea with a wording per human language:
 
-```coco
+```shark
 the message greeting says
   in english Hi
   in hebrew שלום
@@ -487,7 +487,7 @@ Normative rules:
 
 A wording may splice, and different languages may use a different order:
 
-```coco
+```shark
 the message score line says
   in english value of name scored value of points
   in hebrew ערך של name צבר ערך של points
@@ -499,7 +499,7 @@ the use site. A message whose wordings do not all splice the same set of names i
 
 Plural and gender selection is by wording variants:
 
-```coco
+```shark
 the message item count says
   in english
     when none        No items
@@ -518,7 +518,7 @@ a locale needs is a property of the locale, so a Hebrew wording that omits `two`
 
 ### 4.12.4 The display locale **[N]**
 
-```coco
+```shark
 use text
 
 show text the display locale
@@ -541,8 +541,8 @@ set the display locale to hebrew
 | `compose check --deny missing wordings` | turns `W-0412` into an error for release builds |
 
 `compose locale extract` emits XLIFF 2.1 so existing translation tooling works
-unchanged. This is deliberately the one place Coco speaks someone else's format: the
-people doing the translating are not programmers and should not have to learn Coco.
+unchanged. This is deliberately the one place Shark speaks someone else's format: the
+people doing the translating are not programmers and should not have to learn Shark.
 
 ### 4.12.6 Why this is a language feature and not a library **[I]**
 

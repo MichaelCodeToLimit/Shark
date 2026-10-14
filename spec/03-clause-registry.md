@@ -37,14 +37,14 @@ A registry is assembled, in this order, from:
 
 1. the **core registry** shipped with the compiler (`registry/core.signatures`);
 2. the **standard library** signatures of modules brought in by `use`;
-3. **package** signatures of dependencies declared in `project.coco`;
+3. **package** signatures of dependencies declared in `project.shark`;
 4. **user declarations** in the current module (`to …`, `page …`, records, choices).
 
 Later sources may not silently override earlier ones; see condition **R5**.
 
 ## 3.3 Declaration syntax **[N]**
 
-The registry file format (`.signatures`) is itself punctuation-free Coco:
+The registry file format (`.signatures`) is itself punctuation-free Shark:
 
 ```sig
 signature show text
@@ -112,13 +112,13 @@ head left to right:
 
 So:
 
-```coco
+```shark
 to damage a target by an amount
 ```
 
 → head `damage`; slot `target` kind `ref`; particle `by`; slot `amount` kind `value`.
 
-```coco
+```shark
 to show a chart of a kind with some data
 ```
 
@@ -130,7 +130,7 @@ trie-matchable.
 
 Explicit slot kinds may be given for clarity or to force `text`:
 
-```coco
+```shark
 to announce the message as text
   show text value of message
 ```
@@ -359,7 +359,7 @@ The parser knows to expect subject-first form because it is inside `when`.
 
 Users declare events with `to notice`:
 
-```coco
+```shark
 to notice a user posts something
   ...
 
@@ -399,7 +399,7 @@ Admissibility:
 
 Usage:
 
-```coco
+```shark
 use plotting
 
 draw chart bar with data monthly sales into area main panel

@@ -2,7 +2,7 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-Coco's target: **Rust-class memory and data-race safety with zero annotations in
+Shark's target: **Rust-class memory and data-race safety with zero annotations in
 ordinary code, and no tracing garbage collector.** The programmer writes `keep score as 0`
 and `damage Hero by 10`; the compiler decides stack vs. arena vs. unique heap vs.
 reference counting, proves the absence of use-after-free, and proves the absence of data
@@ -12,7 +12,7 @@ races.
 
 ## 6.1 The guarantee **[N]**
 
-A program that compiles under Coco Edition 2026 has, for all executions:
+A program that compiles under Shark Edition 2026 has, for all executions:
 
 | Property | Guaranteed |
 | --- | --- |
@@ -44,11 +44,11 @@ them in this order and takes the first that is provably correct:
 The chosen class is **observable** to the programmer:
 
 ```bash
-compose explain storage --in game.coco --for player
+compose explain storage --in game.shark --for player
 ```
 
 ```
-player  (game.coco line 12)
+player  (game.shark line 12)
   storage class: region  (frame region, created at `when the world updates`)
   reason:        escapes `spawn a player at position` into `world entities`,
                  but every path that reads it is dominated by the frame region,
@@ -79,13 +79,13 @@ each program point:
 - `shares` — this place holds a counted reference;
 - `moved` — the value has been transferred away; reading is `E-0611`.
 
-Inference is a **flow-sensitive, path-sensitive dataflow analysis** over the CIR's SSA
+Inference is a **flow-sensitive, path-sensitive dataflow analysis** over the SIR's SSA
 form, run per function and then propagated interprocedurally over the call graph in
 reverse topological order (SCCs solved to fixpoint).
 
 ### 6.3.2 Capability rules **[N]**
 
-For each CIR operation the analysis applies:
+For each SIR operation the analysis applies:
 
 | Operation | Effect on capabilities |
 | --- | --- |
@@ -147,7 +147,7 @@ which are the only places a new region can begin:
 | an explicit `during` block | user-named | at block exit |
 | the program | `static` | never |
 
-```coco
+```shark
 during this frame
   keep particles as empty list
   repeat 10000 times
@@ -165,7 +165,7 @@ Region inference is a constraint problem:
    up the storage ladder (region → unique → shared).
 
 This is MLKit-style region inference with the crucial difference that **failure is not an
-error, it is a promotion**. Unlike Rust, an Coco program never fails to compile
+error, it is a promotion**. Unlike Rust, an Shark program never fails to compile
 because a lifetime is too short. It compiles, and pays for a heap allocation or a
 refcount, and the compiler tells you:
 
@@ -179,7 +179,7 @@ I-0621  `spark` is reference counted here.
 ```
 
 `compose check --show-promotions` lists all of them; a project may set
-`deny promotions in <module>` in `project.coco` to turn them into errors for
+`deny promotions in <module>` in `project.shark` to turn them into errors for
 performance-critical code.
 
 ## 6.5 Escape analysis **[N]**
@@ -200,7 +200,7 @@ stack-allocated with a fixed capacity; otherwise they use the nearest region.
 **Scalar replacement**: a non-escaping record whose fields are all independently used is
 decomposed into separate SSA values and never materialised. This is why
 
-```coco
+```shark
 let p be a point with
   x as 3
   y as 4
@@ -219,7 +219,7 @@ allocates nothing at all.
   the common case — the region's teardown is a single pointer reset.
 - `to finish` must not fail and must not block.
 
-```coco
+```shark
 a file handle has
   raw as a whole number of 32 bits
 
@@ -249,7 +249,7 @@ I-0631  `parent of node` is a weak link.
    and offers two fixes: make a link weak explicitly (`a weak link to`), or enable the
    optional cycle collector for that type:
 
-```coco
+```shark
 a graph node may form cycles
   neighbours as a list of graph node
 ```
@@ -257,7 +257,7 @@ a graph node may form cycles
 `may form cycles` opts a type into a **local, incremental trial-deletion collector**
 (Bacon–Rajan) that runs only over values of opted-in types, only when their refcount is
 decremented to a non-zero value, and never stops the world. This is the *only* garbage
-collection in Coco, it is opt-in per type, and its cost is visible in
+collection in Shark, it is opt-in per type, and its cost is visible in
 `compose explain storage`.
 
 ## 6.8 Bounds and definite assignment **[N]**
@@ -275,7 +275,7 @@ collection in Coco, it is opt-in per type, and its cost is visible in
 
 Some things cannot be proven. They are confined to modules that opt in:
 
-```coco
+```shark
 this module is trusted because it wraps the platform audio device
 ```
 
@@ -286,7 +286,7 @@ Inside a trusted module:
 - the compiler still performs all analyses and still reports promotions, but
   `assume` statements may discharge obligations:
 
-```coco
+```shark
 assume buffer holds at least count samples
 ```
 
@@ -296,14 +296,14 @@ Rules:
 2. The reason string is mandatory and appears in `compose audit`.
 3. `compose audit` lists every trusted module, every `assume`, and every foreign
    declaration in the dependency graph, with a total count. A project may set
-   `maximum trusted modules 0` in `project.coco` to forbid them, including in
+   `maximum trusted modules 0` in `project.shark` to forbid them, including in
    dependencies.
 4. Trusted code is still bounds-checked and still type-checked. `assume` discharges only
    the specific named obligation.
 
 ## 6.10 Interaction with the storage ladder — worked example **[I]**
 
-```coco
+```shark
 a particle has
   position as a point
   velocity as a point
@@ -345,7 +345,7 @@ What the compiler decides:
 Net allocation per frame: **zero**, apart from the `visible` arena, which is a bump
 pointer reset. No refcounts anywhere. No GC. The programmer wrote no annotations.
 
-`compose explain storage --in particles.coco` prints exactly this table.
+`compose explain storage --in particles.shark` prints exactly this table.
 
 ## 6.11 Why not just use a GC **[I]**
 

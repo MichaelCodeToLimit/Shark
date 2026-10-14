@@ -1,0 +1,28 @@
+note Converted from the Lapis prototype, attic/lapis/commands.lp.
+note
+note Lapis listed its commands in a table and hid their behaviour inside its
+note PowerShell engine:
+note   command show title (text) (renders a stylized title banner)
+note In Shark a new instruction is declared with `to`, and the declaration is
+note also the behaviour. Before anything is parsed, every new instruction is
+note checked against conditions R1 to R6, so none of these can make the
+note language ambiguous. See spec/03-clause-registry.md section 3.4.
+note
+note Two Lapis commands are not declared here:
+note   `to page` is built into Shark, as `open page` and as the `to page` ending
+note   of `show button`, so there is nothing to declare.
+note   `show chart` and `show progress` were declared twice in Lapis, here and
+note   in charts.lp. Shark forbids declaring an instruction twice (condition R5),
+note   so they live once, in charts.shark.
+
+note `share` lets a program that says `use commands` call it. See
+note examples/lapis/showcase.shark.
+
+share show title
+
+note doc Renders a stylized title banner.
+to show title the words as text
+  centred
+    show divider
+    show text value of words
+    show divider

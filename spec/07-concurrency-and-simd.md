@@ -2,7 +2,7 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-Coco's concurrency story follows the same shape as its memory story: the programmer
+Shark's concurrency story follows the same shape as its memory story: the programmer
 describes *what may happen*, the compiler decides *how it runs*, and the result is
 statically race-free.
 
@@ -13,7 +13,7 @@ functions. There are handlers, effects, and a scheduler.
 
 ## 7.1 The execution model **[N]**
 
-An Coco program is:
+An Shark program is:
 
 ```
   a set of declared state      (module-level `keep` bindings, pages, records)
@@ -126,7 +126,7 @@ The remaining hole is `trusted` modules (§6.9), which the theorem excludes and
 
 ## 7.5 Determinism of scheduling **[N]**
 
-Parallel execution must not make program output depend on thread timing. Coco
+Parallel execution must not make program output depend on thread timing. Shark
 guarantees:
 
 1. **Deterministic group order.** Groups run in the order produced by a topological sort
@@ -152,7 +152,7 @@ on. `compose test` relies on this; so does replay debugging
 The handler model covers event-driven parallelism. Data parallelism is expressed with
 `for each … at the same time`:
 
-```coco
+```shark
 for each pixel in image at the same time
   set colour of pixel to brighten colour of pixel by 0.2
 ```
@@ -172,7 +172,7 @@ E-0721  These steps cannot happen at the same time.
 
 Device placement:
 
-```coco
+```shark
 run on the gpu
   for each pixel in image at the same time
     set colour of pixel to brighten colour of pixel by 0.2
@@ -202,7 +202,7 @@ There is no `async` keyword and no function colouring. Instead:
   own stack with zero overhead.
 - Concurrency inside a handler:
 
-```coco
+```shark
 when the page opens
   fetch these at the same time
     let profile be get from https example com api me
@@ -215,7 +215,7 @@ when all complete. It is the only "await" the language has, and it reads as Engl
 
 Timeouts and cancellation:
 
-```coco
+```shark
 try
   wait at most 3 seconds for
     let data be get from https example com api slow
@@ -228,7 +228,7 @@ started inside it, and the region's finishers run.
 
 ### 7.7.1 Deadlock **[N]**
 
-Coco does not statically prevent deadlock; a handler can wait on something that never
+Shark does not statically prevent deadlock; a handler can wait on something that never
 completes. It mitigates it:
 
 - there are no user-visible locks to take in the wrong order;
@@ -262,7 +262,7 @@ Vectorisation is **not** a user-visible feature; it is an obligation on the comp
 
 ### 7.9.2 How the earlier analyses make this easy **[I]**
 
-Auto-vectorisation is hard in C because aliasing is unknown. In Coco it is
+Auto-vectorisation is hard in C because aliasing is unknown. In Shark it is
 straightforward because the ownership analysis has already proved the aliasing facts:
 
 - **No aliasing between distinct owned collections** is a *theorem* from §6.3.3, not a
@@ -315,12 +315,12 @@ candidate loop: whether it vectorised, at what width, and if not, the precise re
 diagnostic with a fix-it wherever a mechanical rewrite would enable it.
 
 ```
-game.coco line 44  `for each p in world particles`
+game.shark line 44  `for each p in world particles`
   ✔ vectorised, width 8 (AVX2), struct-of-arrays layout
   reduction: none
   bounds checks: hoisted (1 check before the loop)
 
-image.coco line 12 `for each pixel in image`
+image.shark line 12 `for each pixel in image`
   ✖ not vectorised
   reason: `blend of pixel and previous pixel` reads the previous iteration's write
   fix-it: compute into a second image (press . to apply)
@@ -342,4 +342,4 @@ level**, which is the only level the programmer can observe.
 
 ---
 
-*Next: [08 — Coco IR](08-cir.md)*
+*Next: [08 — Shark IR](08-sir.md)*

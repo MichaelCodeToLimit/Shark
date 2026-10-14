@@ -2,8 +2,8 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-`compose serve` is the Coco language server. It speaks LSP 3.17 plus a small set of
-Coco extensions in the `coco/` namespace. The same binary serves VS Code, Neovim,
+`compose serve` is the Shark language server. It speaks LSP 3.17 plus a small set of
+Shark extensions in the `shark/` namespace. The same binary serves VS Code, Neovim,
 Zed, Helix, JetBrains (via the LSP plugin), Emacs `eglot` and any other LSP client, so
 editor support is one implementation, not one per editor.
 
@@ -27,7 +27,7 @@ editor support is one implementation, not one per editor.
   "implementationProvider": true,
   "referencesProvider": true,
   "documentHighlightProvider": true,
-  "documentSymbolProvider": { "label": "Coco" },
+  "documentSymbolProvider": { "label": "Shark" },
   "workspaceSymbolProvider": { "resolveProvider": true },
   "codeActionProvider": {
     "codeActionKinds": [
@@ -36,8 +36,8 @@ editor support is one implementation, not one per editor.
       "refactor.extract",
       "source.organizeImports",
       "source.fixAll",
-      "coco.explicitForm",
-      "coco.translateLocale"
+      "shark.explicitForm",
+      "shark.translateLocale"
     ],
     "resolveProvider": true
   },
@@ -58,20 +58,20 @@ editor support is one implementation, not one per editor.
   "callHierarchyProvider": true,
   "typeHierarchyProvider": true,
   "diagnosticProvider": {
-    "identifier": "coco",
+    "identifier": "shark",
     "interFileDependencies": true,
     "workspaceDiagnostics": true
   },
   "executeCommandProvider": {
     "commands": [
-      "coco.explainStorage", "coco.explainSchedule",
-      "coco.explainVectorisation", "coco.explainParse",
-      "coco.switchLocale", "coco.showEIR",
-      "coco.canonicalHash", "coco.registryCheck"
+      "shark.explainStorage", "shark.explainSchedule",
+      "shark.explainVectorisation", "shark.explainParse",
+      "shark.switchLocale", "shark.showEIR",
+      "shark.canonicalHash", "shark.registryCheck"
     ]
   },
   "experimental": {
-    "coco": {
+    "shark": {
       "signatureRegistry": true,
       "localeSwap": true,
       "bidiColumn": true,
@@ -86,7 +86,7 @@ editor support is one implementation, not one per editor.
 
 ## 13.2 Why completion is unusually good here **[I]**
 
-In most languages, completion after `foo.` is a member lookup. In Coco, completion is
+In most languages, completion after `foo.` is a member lookup. In Shark, completion is
 **registry-driven at every word boundary**, which means the editor can always show
 exactly what may come next, because the grammar says so:
 
@@ -119,24 +119,24 @@ locale aliases without re-parsing.
 
 ## 13.3 Semantic tokens **[N]**
 
-Coco's token types map to clause parts, not to C-family categories. Clients that do
+Shark's token types map to clause parts, not to C-family categories. Clients that do
 not understand the custom types fall back to the standard ones listed in parentheses.
 
 | Token type | Meaning | Fallback |
 | --- | --- | --- |
-| `cocoHead` | a signature head keyword | `keyword` |
-| `cocoParticle` | a particle phrase | `operator` |
-| `cocoSlotText` | contents of a `text` slot | `string` |
-| `cocoSlotName` | contents of a `name` slot | `variable` |
-| `cocoRef` | a resolved reference | `variable` |
-| `cocoSplice` | `value of x` inside text | `variable` |
-| `cocoEvent` | an event signature | `event` |
-| `cocoPage` | a page declaration or reference | `class` |
-| `cocoRecord` | a record type | `struct` |
-| `cocoChoice` | a choice type | `enum` |
-| `cocoNote` | a `note` line | `comment` |
-| `cocoNumber` | a numeric literal | `number` |
-| `cocoTypeWord` | `whole number`, `text`, … | `type` |
+| `sharkHead` | a signature head keyword | `keyword` |
+| `sharkParticle` | a particle phrase | `operator` |
+| `sharkSlotText` | contents of a `text` slot | `string` |
+| `sharkSlotName` | contents of a `name` slot | `variable` |
+| `sharkRef` | a resolved reference | `variable` |
+| `sharkSplice` | `value of x` inside text | `variable` |
+| `sharkEvent` | an event signature | `event` |
+| `sharkPage` | a page declaration or reference | `class` |
+| `sharkRecord` | a record type | `struct` |
+| `sharkChoice` | a choice type | `enum` |
+| `sharkNote` | a `note` line | `comment` |
+| `sharkNumber` | a numeric literal | `number` |
+| `sharkTypeWord` | `whole number`, `text`, … | `type` |
 
 | Modifier | Meaning |
 | --- | --- |
@@ -178,12 +178,12 @@ The server MUST keep the registry live:
   in a 100 000-line project on commodity hardware. This is a conformance target, measured
   by the `lsp-latency` suite.
 
-## 13.6 Coco extensions **[N]**
+## 13.6 Shark extensions **[N]**
 
-### `coco/signatureRegistry`
+### `shark/signatureRegistry`
 
 ```
-→ { "uri": "file:///…/main.coco", "position": {…} }
+→ { "uri": "file:///…/main.shark", "position": {…} }
 ← { "node": "show", "candidates": [
       { "cid": "core.stmt.show_text",   "head": "show text",   "next": "text slot" },
       { "cid": "core.stmt.show_button", "head": "show button", "next": "text slot" }
@@ -193,7 +193,7 @@ The server MUST keep the registry live:
 
 Lets the editor render a live "what can come next" panel.
 
-### `coco/parseTrace`
+### `shark/parseTrace`
 
 ```
 → { "uri": "…", "line": 12 }
@@ -208,7 +208,7 @@ Lets the editor render a live "what can come next" panel.
 This is `compose registry why` in the editor. It is the answer to "why did my label get
 cut off?" and MUST be offered as a code action on any `E-02xx` diagnostic.
 
-### `coco/localeSwap`
+### `shark/localeSwap`
 
 ```
 → { "uri": "…", "toLocale": "he", "preview": true }
@@ -219,7 +219,7 @@ Translates the open document. With `"preview": true` the client shows a diff. Th
 hashes MUST be equal; a client SHOULD refuse to apply if they differ and report it as a
 toolchain bug.
 
-### `coco/bidiColumn`
+### `shark/bidiColumn`
 
 ```
 → { "uri": "…", "position": { "line": 4, "character": 12 } }
@@ -229,7 +229,7 @@ toolchain bug.
 For correct caret placement and selection rendering in RTL source
 ([doc 04 §4.5](04-multilingual.md)).
 
-### `coco/documentDirection` (notification, server → client)
+### `shark/documentDirection` (notification, server → client)
 
 ```
 ← { "uri": "…", "baseDirection": "rtl", "locale": "he" }
@@ -237,7 +237,7 @@ For correct caret placement and selection rendering in RTL source
 
 Sent on open and whenever `write in` changes.
 
-### `coco/storageExplain`
+### `shark/storageExplain`
 
 ```
 → { "uri": "…", "position": {…} }
@@ -247,32 +247,32 @@ Sent on open and whenever `write in` changes.
     "promotions": [] }
 ```
 
-### `coco/canonicalHash`
+### `shark/canonicalHash`
 
 ```
 → { "uri": "…" }        (or { "workspace": true })
 ← { "hash": "b3:9f4c1e…", "edition": 2026, "items": 412 }
 ```
 
-### `coco/showEIR`
+### `shark/showEIR`
 
 ```
 → { "uri": "…", "position": {…}, "level": "d" | "c" }
 ← { "text": "function app.main.act.damage …", "sourceMap": [ … ] }
 ```
 
-Opens a synchronised CIR view; selecting a line highlights the source it came from.
+Opens a synchronised SIR view; selecting a line highlights the source it came from.
 
 ## 13.7 Code actions **[N]**
 
-Every diagnostic that has a mechanical fix MUST ship a `quickfix`. The Coco-specific
+Every diagnostic that has a mechanical fix MUST ship a `quickfix`. The Shark-specific
 kinds:
 
 | Kind | Offered when | Does |
 | --- | --- | --- |
-| `coco.explicitForm` | on any clause | rewrites the clause into the hanging explicit form ([doc 02 §2.6.1](02-grammar.md)) |
-| `coco.explicitForm` | on `E-0231`, `E-0233` | fixes a truncated or empty greedy slot |
-| `coco.translateLocale` | anywhere | `coco/localeSwap` for the file or selection |
+| `shark.explicitForm` | on any clause | rewrites the clause into the hanging explicit form ([doc 02 §2.6.1](02-grammar.md)) |
+| `shark.explicitForm` | on `E-0231`, `E-0233` | fixes a truncated or empty greedy slot |
+| `shark.translateLocale` | anywhere | `shark/localeSwap` for the file or selection |
 | `refactor.extract` | on a selection of statements | extracts a `to …` action, inferring the signature and slots |
 | `refactor.rewrite` | on a `for each` that failed to vectorise | applies the suggested rewrite where one exists |
 | `quickfix` | on `E-0615` (aliasing) | inserts the collect-then-modify pattern |
@@ -285,19 +285,19 @@ kinds:
 | --- | --- | --- |
 | `▶ Run test` | above `a test called` | runs that test |
 | `n references` | above shared declarations | peek references |
-| `group 2 · serial` | above `when` | opens `coco/explainSchedule` |
+| `group 2 · serial` | above `when` | opens `shark/explainSchedule` |
 | `×8 AVX2` | above vectorised `for each` | opens the vectorisation report |
-| `open in 日本語` | top of file | `coco/localeSwap` |
+| `open in 日本語` | top of file | `shark/localeSwap` |
 
 ## 13.9 Client requirements **[N]**
 
-A conforming Coco editor extension MUST:
+A conforming Shark editor extension MUST:
 
-1. render `cocoSlotText` distinctly from `cocoHead`, because that distinction is
+1. render `sharkSlotText` distinctly from `sharkHead`, because that distinction is
    what makes quote-free text readable at a glance;
-2. honour `coco/documentDirection` for base paragraph direction;
-3. use `coco/bidiColumn` for caret and selection in RTL documents;
-4. offer `coco/parseTrace` from any `E-02xx` diagnostic;
+2. honour `shark/documentDirection` for base paragraph direction;
+3. use `shark/bidiColumn` for caret and selection in RTL documents;
+4. offer `shark/parseTrace` from any `E-02xx` diagnostic;
 5. never reformat on save unless `compose format` is the formatter.
 
 A reference VS Code extension implementing all of the above is maintained alongside the

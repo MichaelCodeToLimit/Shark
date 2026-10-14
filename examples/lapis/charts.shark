@@ -1,0 +1,22 @@
+note Converted from the Lapis prototype, attic/lapis/charts.lp.
+note
+note Lapis wrote `command show chart (type) with (data)`. The Shark form
+note `to show chart a kind with the data` keeps the same two-word start, which
+note the registry accepts beside `show text` and `show button`. Phrasing it as
+note `to show a chart ...` instead would be rejected with E-0312, because the
+note start would be just `show`.
+note
+note Shark's core has no chart or progress-bar picture yet, so for now these
+note show their values as text. When a drawing library arrives only the bodies
+note change; every line that says `show chart ...` keeps working as written.
+
+share show chart
+share show progress
+
+note doc Renders a visual interactive chart.
+to show chart a kind with the data
+  show text value of kind chart of value of data
+
+note doc Renders an animated progress bar.
+to show progress the percent as a whole number
+  show text value of percent percent complete

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Coco reference front end - Edition 2026.
+Shark reference front end - Edition 2026.
 
-A single-file, dependency-free implementation of the parts of the Coco
+A single-file, dependency-free implementation of the parts of the Shark
 specification whose correctness is not obvious from reading prose:
 
   * the lexer, including indentation and LEX-UNSEG for unsegmented scripts
@@ -13,8 +13,8 @@ specification whose correctness is not obvious from reading prose:
     (spec/02-grammar.md)
   * locale binding, including slot-first segment reordering
     (spec/04-multilingual.md)
-  * CIR-D emission, canonical ordering and the canonical hash
-    (spec/08-cir.md)
+  * SIR-D emission, canonical ordering and the canonical hash
+    (spec/08-sir.md)
 
 It exists so that the two central claims of the design are executable rather
 than merely asserted:
@@ -23,15 +23,15 @@ than merely asserted:
   2. the same program written in different human languages produces the same
      canonical intermediate representation.
 
-Not implemented here: type checking, ownership and region inference, CIR-C,
+Not implemented here: type checking, ownership and region inference, SIR-C,
 the optimiser, and code generation. See spec/16-roadmap.md.
 
 Usage
 -----
-    python coco_ref.py FILE [--emit tokens|ast|cir|hash]
-    python coco_ref.py --check-registry
-    python coco_ref.py --prove-locale-equivalence
-    python coco_ref.py --why FILE:LINE
+    python shark_ref.py FILE [--emit tokens|ast|sir|hash]
+    python shark_ref.py --check-registry
+    python shark_ref.py --prove-locale-equivalence
+    python shark_ref.py --why FILE:LINE
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ LOCALE_ALIASES = {
 # --------------------------------------------------------------------------
 
 
-class CocoError(Exception):
+class SharkError(Exception):
     def __init__(self, code: str, message: str, line: int = 0, col: int = 0,
                  help_text: str = "", fix: str = ""):
         self.code = code
@@ -141,7 +141,7 @@ def _split_phrase(text: str) -> tuple:
 def load_locale(tag: str) -> Locale:
     path = os.path.join(LOCALE_DIR, f"{tag}.locale")
     if not os.path.exists(path):
-        raise CocoError("E-0401", f"no locale file for `{tag}` at {path}")
+        raise SharkError("E-0401", f"no locale file for `{tag}` at {path}")
     loc = Locale(tag=tag)
     with open(path, encoding="utf-8") as handle:
         raw = handle.read()
@@ -215,12 +215,28 @@ def load_locale(tag: str) -> Locale:
     for cid, phrase in loc.stmts.items():
         joined = " ".join(phrase)
         if joined in seen:
-            raise CocoError(
+            raise SharkError(
                 "E-0402",
                 f"locale `{tag}` binds `{joined}` to both "
                 f"{seen[joined]} and {cid}",
             )
         seen[joined] = cid
+
+    # Inside a value, operators and the value words `yes`, `no` and `nothing`
+    # are read at the same positions, so they may not share a phrase either.
+    in_values: dict = {}
+    roles = [(f"operator `{op}`", phrase) for op, phrase in loc.ops.items()]
+    roles += [(f"value `{word}`", loc.words[word])
+              for word in ("yes", "no", "nothing") if word in loc.words]
+    for role, phrase in roles:
+        joined = " ".join(phrase)
+        if joined in in_values:
+            raise SharkError(
+                "E-0402",
+                f"locale `{tag}` binds `{joined}` to both "
+                f"{in_values[joined]} and {role}",
+            )
+        in_values[joined] = role
     return loc
 
 
@@ -235,6 +251,7 @@ class Slot:
     kind: str
     terminator_names: list = field(default_factory=list)
     is_open: bool = False
+    type: str = ""            # a type CID, for slots declared `as <type>`
 
 
 @dataclass
@@ -477,7 +494,7 @@ class BoundRegistry:
             elif words[0] == "slot":
                 name = words[1]
                 if name not in slots:
-                    raise CocoError(
+                    raise SharkError(
                         "E-0406",
                         f"locale order for `{bound.cid}` names unknown slot `{name}`")
                 mentioned.add(name)
@@ -657,12 +674,12 @@ class Lexer:
             raw = lines[i]
             for ch in raw:
                 if ch in FORBIDDEN_BIDI:
-                    raise CocoError(
+                    raise SharkError(
                         "E-0115",
                         "bidirectional embedding or override control in source",
                         i + 1, 1)
             if "\t" in raw[:len(raw) - len(raw.lstrip())]:
-                raise CocoError("E-0110", "tab character in indentation",
+                raise SharkError("E-0110", "tab character in indentation",
                                    i + 1, 1,
                                    help_text="replace tabs with spaces")
             body = raw.strip()
@@ -673,7 +690,7 @@ class Lexer:
             if spaces and indent_unit == 0:
                 indent_unit = spaces
             if indent_unit and spaces % indent_unit:
-                raise CocoError(
+                raise SharkError(
                     "E-0111",
                     f"indentation of {spaces} is not a multiple of "
                     f"the file's unit of {indent_unit}", i + 1, 1)
@@ -688,7 +705,7 @@ class Lexer:
                 self.tokens.append(Token("DEDENT", "", i + 1, spaces + 1))
             if level > level_stack[-1]:
                 if level > level_stack[-1] + 1:
-                    raise CocoError(
+                    raise SharkError(
                         "E-0112", "indented by more than one step", i + 1, 1)
                 level_stack.append(level)
                 self.tokens.append(Token("INDENT", "", i + 1, spaces + 1))
@@ -782,13 +799,14 @@ class Node:
 
 class Parser:
     def __init__(self, tokens: list, registry: BoundRegistry,
-                 names: Sequence[str] = ()):
+                 names: Sequence[str] = (), actions: Optional[dict] = None):
         self.tokens = tokens
         self.registry = registry
         self.locale = registry.locale
         self.pos = 0
         self.names = set(names)
         self.traces: dict = {}
+        self.actions = actions or {}      # line -> Signature from `to ...`
 
     # -- token helpers ---------------------------------------------------
 
@@ -807,7 +825,7 @@ class Parser:
     def expect(self, kind: str) -> Token:
         if not self.at(kind):
             tok = self.peek()
-            raise CocoError("E-0201",
+            raise SharkError("E-0201",
                                f"expected {kind} but found {tok.kind} `{tok.text}`",
                                tok.line, tok.col)
         return self.take()
@@ -835,8 +853,9 @@ class Parser:
         return items
 
     def parse_statement(self) -> Node:
-        if self._skip_directive():
-            return Node(cid="core.directive", args={}, line=self.peek().line)
+        directive = self._directive()
+        if directive is not None:
+            return directive
         node = self.parse_clause()
         if self.at("NEWLINE"):
             self.take()
@@ -845,22 +864,36 @@ class Parser:
             node.body = self.parse_body()
         return node
 
-    def _skip_directive(self) -> bool:
+    def _directive(self) -> Optional[Node]:
+        """`write in` only tells the reader which words to expect, so it leaves
+        nothing in SIR. `use` and `share` decide what is visible between
+        modules (spec/05 section 5.12), so they stay in SIR."""
         toks = self.line_tokens()
+        if not toks:
+            return None
+        line = toks[0].line
         if len(toks) == 3 and toks[0].text.lower() == "write" \
                 and toks[1].text.lower() == "in":
-            while not self.at("NEWLINE") and not self.at("EOF"):
-                self.take()
-            if self.at("NEWLINE"):
-                self.take()
-            return True
-        if toks and toks[0].text.lower() in ("use", "share"):
-            while not self.at("NEWLINE") and not self.at("EOF"):
-                self.take()
-            if self.at("NEWLINE"):
-                self.take()
-            return True
-        return False
+            self._take_line()
+            return Node(cid="core.directive", line=line)
+        words = _texts(toks)
+        for word, cid, arg in (("use", "core.decl.use", "module"),
+                               ("share", "core.decl.share", "name")):
+            lexeme = self.locale.words.get(word, (word,))
+            if words[:len(lexeme)] == lexeme:
+                if len(words) == len(lexeme):
+                    raise SharkError("E-0202", f"`{' '.join(lexeme)}` needs a name after it",
+                                    line, toks[0].col)
+                self._take_line()
+                return Node(cid=cid, args={arg: {"name": list(words[len(lexeme):])}},
+                            line=line)
+        return None
+
+    def _take_line(self) -> None:
+        while not self.at("NEWLINE") and not self.at("EOF"):
+            self.take()
+        if self.at("NEWLINE"):
+            self.take()
 
     def parse_body(self) -> list:
         if self.at("INDENT"):
@@ -888,13 +921,13 @@ class Parser:
         toks = self.line_tokens()
         if not toks:
             tok = self.peek()
-            raise CocoError("E-0202", "expected an instruction here",
+            raise SharkError("E-0202", "expected an instruction here",
                                tok.line, tok.col)
 
         _anchor, bound = self._find_head_anchor(toks, 0, self.STATEMENT_KINDS)
         if bound is None:
             tok = toks[0]
-            raise CocoError(
+            raise SharkError(
                 "E-0210",
                 f"`{tok.text}` does not start any known instruction",
                 tok.line, tok.col,
@@ -913,9 +946,17 @@ class Parser:
         args, cursor, trace = self._fill(bound, toks, 0)
         node = Node(cid=bound.cid, args=args, line=toks[0].line, trace=trace)
 
+        if cursor < len(toks):
+            # Every word on the line must belong to the instruction. Dropping
+            # the rest silently would hide typos and lost meaning.
+            tok = toks[cursor]
+            raise SharkError(
+                "E-0255",
+                f"`{' '.join(t.text for t in toks[cursor:])}` is left over at the "
+                f"end of this `{' '.join(bound.head)}` line",
+                tok.line, tok.col,
+                help_text="every word on a line must belong to its instruction")
         for _ in range(cursor):
-            self.take()
-        while self.at("WORD") or self.at("NUMBER"):
             self.take()
         self.traces.setdefault(node.line, trace)
         return node
@@ -937,10 +978,13 @@ class Parser:
                 if _texts(toks[cursor:cursor + head_len]) == bound.head:
                     trace.append({"action": "head match",
                                   "matched": " ".join(bound.head),
+                                  "role": "head",
+                                  "span": _span(toks, cursor, cursor + head_len),
                                   "at token": cursor})
                     cursor += head_len
                 continue
             if seg[0] == "subject":
+                start = cursor
                 if head_at is not None and cursor < head_at:
                     value = " ".join(t.text for t in toks[cursor:head_at])
                     cursor = head_at
@@ -948,31 +992,41 @@ class Parser:
                     value, cursor = self._read_ref(toks, cursor)
                 args["subject"] = {"ref": value}
                 trace.append({"action": "subject", "value": value,
+                              "role": "ref",
+                              "span": _span(toks, start, cursor),
                               "delimited by": "the event head"})
                 continue
             if seg[0] == "slot":
                 bslot = seg[1]
                 if bslot.slot.kind == "block":
                     continue
-                value, cursor, info = self._read_slot(toks, cursor, bslot)
+                start = cursor
+                value, cursor, info = self._read_slot(toks, start, bslot)
+                info.setdefault("role", "slot:" + bslot.slot.kind)
+                info["span"] = _span(toks, start, cursor)
                 args[bslot.slot.name] = value
                 trace.append(info)
                 continue
             if seg[0] == "particle":
                 words, optional, bslots = seg[1], seg[2], seg[3]
                 if _texts(toks[cursor:cursor + len(words)]) == words:
-                    cursor += len(words)
                     trace.append({"action": "particle",
-                                  "matched": " ".join(words)})
+                                  "matched": " ".join(words),
+                                  "role": "particle",
+                                  "span": _span(toks, cursor, cursor + len(words))})
+                    cursor += len(words)
                     for bslot in bslots:
                         if bslot.slot.kind == "block":
                             continue
-                        value, cursor, info = self._read_slot(toks, cursor, bslot)
+                        start = cursor
+                        value, cursor, info = self._read_slot(toks, start, bslot)
+                        info.setdefault("role", "slot:" + bslot.slot.kind)
+                        info["span"] = _span(toks, start, cursor)
                         args[bslot.slot.name] = value
                         trace.append(info)
                 elif not optional:
                     tok = toks[min(cursor, len(toks) - 1)]
-                    raise CocoError(
+                    raise SharkError(
                         "E-0220",
                         f"expected `{' '.join(words)}` here",
                         tok.line, tok.col)
@@ -1039,7 +1093,7 @@ class Parser:
                         break
             if chosen is None:
                 tok = inner[0]
-                raise CocoError(
+                raise SharkError(
                     "E-0221",
                     f"`{tok.text}` does not name a part of `{' '.join(bound.head)}`",
                     tok.line, tok.col,
@@ -1123,7 +1177,7 @@ class Parser:
         _anchor, bound = self._find_head_anchor(toks, cursor, self.EVENT_KINDS)
         if bound is None:
             tok = toks[min(cursor, len(toks) - 1)]
-            raise CocoError(
+            raise SharkError(
                 "E-0240",
                 "this does not name anything that can happen",
                 tok.line, tok.col,
@@ -1143,7 +1197,7 @@ class Parser:
                         {"action": "number slot", "slot": bslot.slot.name,
                          "value": value})
             tok = toks[min(cursor, len(toks) - 1)]
-            raise CocoError("E-0234", "expected a number here",
+            raise SharkError("E-0234", "expected a number here",
                                tok.line, tok.col)
         if kind == "ref":
             value, cursor = self._read_ref(toks, cursor)
@@ -1158,7 +1212,7 @@ class Parser:
             end, stopper = self._greedy_end(toks, cursor, bslot)
             if end == cursor:
                 tok = toks[min(cursor, len(toks) - 1)]
-                raise CocoError(
+                raise SharkError(
                     "E-0231",
                     f"this `{bslot.slot.name}` is empty",
                     tok.line, tok.col,
@@ -1172,6 +1226,19 @@ class Parser:
                     "value": pieces,
                     "stopped at": " ".join(stopper) if stopper else "end of line"}
             return value, end, info
+        if kind == "signature":
+            # The shape of a `to ...` declaration was read before parsing
+            # began (declare_actions); here it is recorded in SIR.
+            line = toks[cursor].line if cursor < len(toks) else 0
+            sig = self.actions.get(line)
+            if sig is None:
+                tok = toks[min(cursor, len(toks) - 1)]
+                raise SharkError("E-0311", "a new instruction is declared at the top "
+                                "level, with its words on the same line as `to`",
+                                tok.line, tok.col)
+            return (action_shape(sig), len(toks),
+                    {"action": "declared instruction", "slot": bslot.slot.name,
+                     "declares": sig.cid})
         # block and anything else
         return ({}, cursor, {"action": "skipped", "slot": bslot.slot.name})
 
@@ -1261,19 +1328,22 @@ class Parser:
     }
     COMPARISONS = {"is", "is not", "is more than", "is less than",
                    "is at least", "is at most"}
-    PREFIX = {"not", "minus"}
+    PREFIX = {"minus"}
+    # `not` sits between the comparisons and `and` (spec/02 section 2.7.1):
+    # `not a is b` means not (a is b). Its operand is a comparison or tighter.
+    NOT_OPERAND = 3
 
     def _read_expression(self, toks: list, cursor: int, bslot: BoundSlot) -> tuple:
         end, _ = self._greedy_end(toks, cursor, bslot)
         pieces = self._flatten_expression(toks[cursor:end])
         if not pieces:
             tok = toks[min(cursor, len(toks) - 1)]
-            raise CocoError("E-0232", "expected a value here",
+            raise SharkError("E-0232", "expected a value here",
                                tok.line, tok.col)
         tree, pos = self._parse_binary(pieces, 0, 1)
         if pos != len(pieces):
             tok = toks[min(cursor + pos, len(toks) - 1)]
-            raise CocoError(
+            raise SharkError(
                 "E-0251", f"`{tok.text}` is left over at the end of this value",
                 tok.line, tok.col)
         return tree, end
@@ -1283,6 +1353,10 @@ class Parser:
         such as `is more than` are matched longest first."""
         ops = sorted(self.locale.ops.items(), key=lambda kv: -len(kv[1]))
         of_words = self.locale.particles.get("of", ("of",))
+        # `yes` and `no` are values, not names: they reach SIR as the same
+        # canonical words whatever the source language calls them.
+        truths = [(value, self.locale.words.get(value, (value,)))
+                  for value in ("yes", "no")]
         pieces = []
         i = 0
         while i < len(parts):
@@ -1297,6 +1371,12 @@ class Parser:
                     i += len(phrase)
                     matched = True
                     break
+            for value, phrase in truths:
+                if _texts(parts[i:i + len(phrase)]) == phrase:
+                    pieces.append(("truth", value))
+                    i += len(phrase)
+                    matched = True
+                    break
             if matched:
                 continue
             tok = parts[i]
@@ -1308,7 +1388,15 @@ class Parser:
         return pieces
 
     def _parse_binary(self, pieces: list, pos: int, min_prec: int) -> tuple:
-        left, pos = self._parse_unary(pieces, pos)
+        if pos < len(pieces) and pieces[pos] == ("op", "not"):
+            if min_prec > self.NOT_OPERAND:
+                raise SharkError(
+                    "E-0254", "`not` goes in front of a whole comparison; write "
+                    "`not a is b`, or use `is not`")
+            operand, pos = self._parse_binary(pieces, pos + 1, self.NOT_OPERAND)
+            left = {"apply": "not", "operand": operand}
+        else:
+            left, pos = self._parse_unary(pieces, pos)
         saw_comparison = False
         while pos < len(pieces) and pieces[pos][0] == "op":
             op = pieces[pos][1]
@@ -1317,7 +1405,7 @@ class Parser:
                 break
             if op in self.COMPARISONS:
                 if saw_comparison:
-                    raise CocoError(
+                    raise SharkError(
                         "E-0252",
                         "comparisons do not chain; write `a is less than b "
                         "and b is less than c`")
@@ -1335,18 +1423,25 @@ class Parser:
             operand, pos = self._parse_unary(pieces, pos + 1)
             return {"apply": op, "operand": operand}, pos
         if pos >= len(pieces):
-            raise CocoError("E-0232", "expected a value here")
+            raise SharkError("E-0232", "expected a value here")
         kind, value = pieces[pos]
         if kind == "number":
             return {"number": value}, pos + 1
         if kind == "ref":
             return {"ref": value}, pos + 1
-        raise CocoError("E-0253",
+        if kind == "truth":
+            return {"truth": value}, pos + 1
+        raise SharkError("E-0253",
                            f"`{value}` cannot start a value")
 
 
 def _texts(toks: Sequence[Token]) -> tuple:
     return tuple(t.text for t in toks)
+
+
+def _span(toks: Sequence[Token], start: int, end: int) -> list:
+    """Source positions of tokens [start, end), for editors (spec/13)."""
+    return [[t.line, t.col, len(t.text)] for t in toks[start:end]]
 
 
 # --------------------------------------------------------------------------
@@ -1400,11 +1495,228 @@ def collect_names(tokens: list, registry: BoundRegistry) -> list:
 
 
 # --------------------------------------------------------------------------
-# CIR-D emission and the canonical hash
+# Declared instructions (spec/03 section 3.4)
+# --------------------------------------------------------------------------
+
+ARTICLES = ("a", "an", "the")
+SLOT_TYPES = {
+    "core.type.text": "text",
+    "core.type.whole_number": "value",
+    "core.type.decimal_number": "value",
+    "core.type.boolean": "value",
+}
+
+
+def top_level_lines(tokens: list) -> list:
+    """The word runs of every line at indentation depth 0, in order."""
+    lines = []
+    depth = 0
+    i = 0
+    while i < len(tokens):
+        kind = tokens[i].kind
+        if kind == "INDENT":
+            depth += 1
+        elif kind == "DEDENT":
+            depth -= 1
+        elif kind in ("WORD", "NUMBER"):
+            j = i
+            while j < len(tokens) and tokens[j].kind in ("WORD", "NUMBER"):
+                j += 1
+            if depth == 0:
+                lines.append(tokens[i:j])
+            i = j
+            continue
+        i += 1
+    return lines
+
+
+def declare_actions(lines: list, registry: BoundRegistry, particle_set: list,
+                    taken: dict) -> dict:
+    """Turn every top-level `to ...` line into a signature before anything
+    is parsed, so a new instruction can be used above its declaration.
+
+    Scanning the words after `to`: an article and a word make a slot; `as`
+    and a type after a slot choose its kind; a particle phrase (longest
+    match) is kept as a particle; any other word joins the head, which must
+    come before the first slot. `taken` maps every head already visible to
+    what declared it, for conditions R1 and R5. Returns {line: Signature}."""
+    locale = registry.locale
+    decl = registry.bound.get("core.decl.action")
+    if decl is None:
+        return {}
+    articles = {w for a in ARTICLES for w in locale.words.get(a, (a,))}
+    as_words = locale.particles.get("as", ("as",))
+    particles = sorted(((registry._particle_words(p), p) for p in particle_set),
+                       key=lambda pair: -len(pair[0]))
+    types = sorted(((phrase, cid) for cid, phrase in locale.types.items()),
+                   key=lambda pair: -len(pair[0]))
+
+    found: dict = {}
+    for toks in lines:
+        words = _texts(toks)
+        if words[:len(decl.head)] != decl.head or len(words) == len(decl.head):
+            continue
+        rest = toks[len(decl.head):]
+        texts = _texts(rest)
+        head: list = []
+        segments: list = [("head",)]
+        pending: Optional[ParticleSeg] = None
+        slots: list = []
+        i = 0
+        while i < len(rest):
+            word = texts[i]
+            if word in articles and i + 1 < len(rest):
+                slot = Slot(name=rest[i + 1].text, kind="ref")
+                i += 2
+                if texts[i:i + len(as_words)] == as_words:
+                    i += len(as_words)
+                    if i < len(rest) and texts[i] in articles:
+                        i += 1
+                    for phrase, cid in types:
+                        if texts[i:i + len(phrase)] == phrase and cid in SLOT_TYPES:
+                            slot.kind, slot.type = SLOT_TYPES[cid], cid
+                            i += len(phrase)
+                            break
+                    else:
+                        tok = rest[min(i, len(rest) - 1)]
+                        raise SharkError(
+                            "E-0317", f"`{tok.text}` is not a kind of value a slot "
+                            "can hold here", tok.line, tok.col,
+                            help_text="use text, a whole number, a decimal number "
+                                      "or yes or no")
+                if any(s.name == slot.name for s in slots):
+                    raise SharkError("E-0318", f"two slots are called `{slot.name}`",
+                                    rest[0].line, rest[0].col)
+                slots.append(slot)
+                if pending is not None:
+                    pending.slots.append(slot)
+                else:
+                    segments.append(("slot", slot))
+                continue
+            for phrase, canonical in particles:
+                if texts[i:i + len(phrase)] == phrase:
+                    pending = ParticleSeg(canonical=canonical, optional=False)
+                    segments.append(("particle", pending))
+                    i += len(phrase)
+                    break
+            else:
+                if slots or pending is not None:
+                    tok = rest[i]
+                    raise SharkError(
+                        "E-0311", f"`{word}` comes after a slot, but an instruction's "
+                        "own words must all come before its first slot",
+                        tok.line, tok.col,
+                        help_text="spec/03 section 3.4")
+                head.append(word)
+                i += 1
+        if not head:
+            raise SharkError("E-0311", "a new instruction must start with a word of "
+                            "its own", toks[0].line, toks[0].col)
+
+        # A greedy or value slot is closed by the particle that follows it
+        # (R2); a text slot that ends the line is open.
+        order = [seg for seg in segments[1:]]
+        flat: list = []
+        for seg in order:
+            if seg[0] == "slot":
+                flat.append(("slot", seg[1]))
+            else:
+                flat.append(("particle", seg[1]))
+                flat.extend(("slot", s) for s in seg[1].slots)
+        for index, (what, item) in enumerate(flat):
+            if what != "slot" or item.kind == "ref":
+                continue
+            following = flat[index + 1] if index + 1 < len(flat) else None
+            if following is None:
+                item.is_open = item.kind == "text"
+            elif following[0] == "particle":
+                item.terminator_names.append(following[1].canonical)
+
+        head_t = tuple(head)
+        joined = " ".join(head_t)
+        where = (toks[0].line, toks[0].col)
+        if head_t in taken:
+            raise SharkError("E-0315", f"`{joined}` is already an instruction "
+                            f"({taken[head_t]}), and one can't be declared twice",
+                            *where)
+        for other, source in taken.items():
+            short, long = sorted((head_t, other), key=len)
+            if short != long and long[:len(short)] == short:
+                raise SharkError(
+                    "E-0312", f"`{' '.join(short)}` and `{' '.join(long)}` cannot both "
+                    f"exist: after `{' '.join(short)}` the reader couldn't tell a slot "
+                    f"from the rest of `{' '.join(long)}` ({source})", *where,
+                    fix=f"start the new instruction with a word of its own, such as "
+                        f"`to draw ...`")
+        sig = Signature(cid="user." + "_".join(head_t), default_head_words=head_t,
+                        segments=segments, kind="stmt")
+        taken[head_t] = f"declared on line {toks[0].line}"
+        found[toks[0].line] = sig
+    return found
+
+
+def action_shape(sig: Signature) -> dict:
+    """A declared instruction's shape as SIR records it."""
+    def slot_part(slot: Slot) -> dict:
+        part = {"slot": slot.name, "kind": slot.kind}
+        if slot.type:
+            part["type"] = slot.type
+        return part
+
+    parts: list = [{"head": list(sig.default_head_words)}]
+    for seg in sig.segments:
+        if seg[0] == "slot":
+            parts.append(slot_part(seg[1]))
+        elif seg[0] == "particle":
+            parts.append({"particle": seg[1].canonical})
+            parts.extend(slot_part(s) for s in seg[1].slots)
+    return {"action": sig.cid, "parts": parts}
+
+
+# --------------------------------------------------------------------------
+# Modules (spec/05 section 5.12)
 # --------------------------------------------------------------------------
 
 
-def to_cir(items: list, module_cid: str = "app.main") -> dict:
+class ModuleLoader:
+    """Finds and compiles the modules a program uses. One file is one module;
+    `use ui panels side` means ui/panels/side.shark beside the entry file."""
+
+    def __init__(self, root: str):
+        self.root = root
+        self.done: dict = {}
+        self.loading: list = []
+
+    def load(self, words: tuple, line: int = 0) -> "Compilation":
+        path = os.path.join(self.root, *words) + ".shark"
+        key = os.path.normcase(os.path.abspath(path))
+        if key in self.done:
+            return self.done[key]
+        name = " ".join(words)
+        if key in self.loading:
+            raise SharkError(
+                "E-1202", f"modules use each other in a circle through `{name}`; "
+                "the reference toolchain can't compile that yet", line)
+        if not os.path.exists(path):
+            raise SharkError("E-1201", f"there is no module called `{name}` "
+                            f"(looked for {path})", line)
+        self.loading.append(key)
+        try:
+            with open(path, encoding="utf-8") as handle:
+                comp = compile_source(handle.read(), path, loader=self)
+        finally:
+            self.loading.pop()
+        comp.module = name
+        self.done[key] = comp
+        return comp
+
+
+# --------------------------------------------------------------------------
+# SIR-D emission and the canonical hash
+# --------------------------------------------------------------------------
+
+
+def to_sir(items: list, module_cid: str = "app.main") -> dict:
     pool: list = []
 
     def datum(value: Any) -> int:
@@ -1477,13 +1789,13 @@ def to_cir(items: list, module_cid: str = "app.main") -> dict:
     }
 
 
-def canonical_encoding(cir: dict) -> bytes:
-    return json.dumps(cir, ensure_ascii=False, sort_keys=True,
+def canonical_encoding(sir: dict) -> bytes:
+    return json.dumps(sir, ensure_ascii=False, sort_keys=True,
                       separators=(",", ":")).encode("utf-8")
 
 
-def canonical_hash(cir: dict) -> str:
-    digest = hashlib.blake2b(canonical_encoding(cir), digest_size=32).hexdigest()
+def canonical_hash(sir: dict) -> str:
+    digest = hashlib.blake2b(canonical_encoding(sir), digest_size=32).hexdigest()
     # The specification names BLAKE3; the reference uses BLAKE2b because it is
     # in the Python standard library. The tag records which was used.
     return "b2:" + digest
@@ -1510,9 +1822,29 @@ class Compilation:
     locale: Locale
     tokens: list
     items: list
-    cir: dict
+    sir: dict
     hash: str
     traces: dict
+    module: str = "app main"
+    signatures: dict = field(default_factory=dict)   # declared here: cid -> Signature
+    shared: list = field(default_factory=list)       # names this module shares
+    used: dict = field(default_factory=dict)         # module name -> Compilation
+
+    def exports(self) -> tuple:
+        """The signatures and names another module sees after `use`."""
+        shared = set(self.shared)
+        sigs = {cid: sig for cid, sig in self.signatures.items()
+                if " ".join(sig.default_head_words) in shared}
+        return sigs, [n for n in self.shared if n not in
+                      {" ".join(s.default_head_words) for s in sigs.values()}]
+
+    def modules(self) -> dict:
+        """Every module this program is made of, by name, this one included."""
+        found = {self.module: self}
+        for comp in self.used.values():
+            for name, inner in comp.modules().items():
+                found.setdefault(name, inner)
+        return found
 
 
 def compile_file(path: str, locale_tag: Optional[str] = None) -> Compilation:
@@ -1522,31 +1854,79 @@ def compile_file(path: str, locale_tag: Optional[str] = None) -> Compilation:
 
 
 def compile_source(source: str, path: str = "<memory>",
-                   locale_tag: Optional[str] = None) -> Compilation:
+                   locale_tag: Optional[str] = None,
+                   loader: Optional[ModuleLoader] = None) -> Compilation:
     tag = locale_tag or detect_locale(source)
     locale = load_locale(tag)
-    raw_signatures, _particles = load_registry()
+    raw_signatures, particle_set = load_registry()
     registry = BoundRegistry(raw_signatures, locale)
 
     problems = registry.check_admissibility()
     if problems:
         code, message = problems[0]
-        raise CocoError(code, f"registry is not admissible: {message}")
+        raise SharkError(code, f"registry is not admissible: {message}")
 
-    # Pass 1: fixed lexicon, declaration heads only.
+    # Pass 1: fixed lexicon. Before any clause is parsed, find what this
+    # module uses and shares and the instructions it declares (spec/02 2.2).
     lexer = Lexer(source, locale, registry.lexicon())
     tokens = lexer.run()
-    names = collect_names(tokens, registry)
+    lines = top_level_lines(tokens)
+    use_words = locale.words.get("use", ("use",))
+    share_words = locale.words.get("share", ("share",))
+
+    loader = loader or ModuleLoader(os.path.dirname(os.path.abspath(path)))
+    used: dict = {}
+    imported: dict = {}
+    imported_names: list = []
+    taken = {head: "built in" for head in registry.by_head}
+    for toks in lines:
+        words = _texts(toks)
+        if words[:len(use_words)] == use_words and len(words) > len(use_words):
+            module = words[len(use_words):]
+            comp = loader.load(module, toks[0].line)
+            used[" ".join(module)] = comp
+            sigs, names_out = comp.exports()
+            for cid, sig in sigs.items():
+                if sig.default_head_words in taken and cid not in imported:
+                    raise SharkError(
+                        "E-0315", f"`{' '.join(sig.default_head_words)}` from "
+                        f"`{' '.join(module)}` is already an instruction here",
+                        toks[0].line, toks[0].col)
+                taken[sig.default_head_words] = f"from `{' '.join(module)}`"
+                imported[cid] = sig
+            imported_names.extend(names_out)
+    shared = [" ".join(_texts(toks)[len(share_words):]) for toks in lines
+              if _texts(toks)[:len(share_words)] == share_words
+              and len(toks) > len(share_words)]
+
+    actions = declare_actions(lines, registry, particle_set, taken)
+    own = {sig.cid: sig for sig in actions.values()}
+    if own or imported:
+        registry = BoundRegistry({**raw_signatures, **imported, **own}, locale)
+        problems = registry.check_admissibility()
+        if problems:
+            code, message = problems[0]
+            raise SharkError(code, message)
+        lexer = Lexer(source, locale, registry.lexicon())
+        tokens = lexer.run()
+    names = collect_names(tokens, registry) + imported_names
+
+    declared = set(names) | {" ".join(s.default_head_words) for s in own.values()}
+    for name in shared:
+        if name not in declared:
+            raise SharkError("E-0503", f"`{name}` is shared but this module never "
+                            "declares it")
 
     # Pass 2: lexicon extended with the declared names, then full parse.
     lexer = Lexer(source, locale, registry.lexicon(names))
     tokens = lexer.run()
-    parser = Parser(tokens, registry, names)
+    parser = Parser(tokens, registry, names, actions)
     items = parser.parse_program()
 
-    cir = to_cir(items)
+    sir = to_sir(items)
     return Compilation(path=path, locale=locale, tokens=tokens, items=items,
-                       cir=cir, hash=canonical_hash(cir), traces=parser.traces)
+                       sir=sir, hash=canonical_hash(sir), traces=parser.traces,
+                       signatures=own, shared=shared, used=used)
 
 
 # --------------------------------------------------------------------------
@@ -1583,7 +1963,8 @@ def render_trace(trace: list) -> str:
     lines = []
     for step in trace:
         action = step.get("action", "?")
-        rest = ", ".join(f"{k}={v!r}" for k, v in step.items() if k != "action")
+        rest = ", ".join(f"{k}={v!r}" for k, v in step.items()
+                         if k not in ("action", "span", "role"))
         lines.append(f"  {action:<14} {rest}")
     return "\n".join(lines)
 
@@ -1623,9 +2004,9 @@ def _available_locales() -> list:
 
 
 TOUR_FILES = {
-    "en": os.path.join(ROOT, "examples", "tour.coco"),
-    "he": os.path.join(ROOT, "examples", "tour.he.coco"),
-    "ja": os.path.join(ROOT, "examples", "tour.ja.coco"),
+    "en": os.path.join(ROOT, "examples", "tour.shark"),
+    "he": os.path.join(ROOT, "examples", "tour.he.shark"),
+    "ja": os.path.join(ROOT, "examples", "tour.ja.shark"),
 }
 
 
@@ -1655,16 +2036,16 @@ def cmd_prove_locale_equivalence() -> int:
         print("RESULT: all three canonical hashes are identical.")
         print("        The three files are the same program.")
         print()
-        print("Canonical CIR-D:")
-        print(json.dumps(results["en"].cir, ensure_ascii=False, indent=2))
+        print("Canonical SIR-D:")
+        print(json.dumps(results["en"].sir, ensure_ascii=False, indent=2))
         return 0
 
     print("RESULT: hashes differ. The locale binding is not meaning preserving.")
     for tag, value in hashes.items():
         print(f"   {tag}: {value}")
     for tag, comp in results.items():
-        print(f"\n--- {tag} CIR ---")
-        print(json.dumps(comp.cir, ensure_ascii=False, indent=2))
+        print(f"\n--- {tag} SIR ---")
+        print(json.dumps(comp.sir, ensure_ascii=False, indent=2))
     return 1
 
 
@@ -1689,7 +2070,7 @@ def cmd_why(target: str) -> int:
 
 
 def _force_utf8_output() -> None:
-    """Coco source is Unicode by definition; make sure a Windows console
+    """Shark source is Unicode by definition; make sure a Windows console
     with a legacy code page does not hide that."""
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -1701,11 +2082,11 @@ def _force_utf8_output() -> None:
 def main(argv: Optional[list] = None) -> int:
     _force_utf8_output()
     parser = argparse.ArgumentParser(
-        prog="coco_ref",
-        description="Coco reference front end (Edition 2026)")
-    parser.add_argument("file", nargs="?", help="an .coco source file")
+        prog="shark_ref",
+        description="Shark reference front end (Edition 2026)")
+    parser.add_argument("file", nargs="?", help="an .shark source file")
     parser.add_argument("--emit", default="ast",
-                        choices=["tokens", "ast", "cir", "hash"])
+                        choices=["tokens", "ast", "sir", "hash"])
     parser.add_argument("--locale", default=None)
     parser.add_argument("--check-registry", action="store_true")
     parser.add_argument("--prove-locale-equivalence", action="store_true")
@@ -1729,12 +2110,12 @@ def main(argv: Optional[list] = None) -> int:
                 print(tok)
         elif args.emit == "ast":
             print(render_ast(comp.items))
-        elif args.emit == "cir":
-            print(json.dumps(comp.cir, ensure_ascii=False, indent=2))
+        elif args.emit == "sir":
+            print(json.dumps(comp.sir, ensure_ascii=False, indent=2))
         elif args.emit == "hash":
             print(comp.hash)
         return 0
-    except CocoError as err:
+    except SharkError as err:
         source_line = ""
         if args.file and os.path.exists(args.file) and err.line:
             lines = open(args.file, encoding="utf-8").read().splitlines()

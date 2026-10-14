@@ -1,0 +1,28 @@
+note Converted from the Lapis prototype, attic/lapis/app.lp.
+note
+note Lapis was the first attempt at this language: a PowerShell script that
+note turned programs like this one into HTML. The program itself needed only
+note two changes to become Shark:
+note   page names are words, so `page 1` and `page 2` became One and Two
+note   the welcome text says Shark rather than Lapis
+note Lapis kept three byte-for-byte copies of this file (app.lp, app.lps and
+note test app v1/telaviv-hub/app.lp). They are now this one file.
+note
+note Every button line is an original Lapis line, and Shark reads each one the
+note way Lapis meant it. `Go to Final Page to page Two` keeps its whole label,
+note because a bare `to` is not the ending phrase `to page`. See spec/02 2.4.2.
+
+share Dashboard
+
+page Dashboard
+  show text Welcome to Shark!
+  show button Get Started to page One
+
+page One
+  show text You have reached Page 1!
+  show button Go to Final Page to page Two
+  show button Back to Dashboard to page Dashboard
+
+page Two
+  show text You have reached Page 2!
+  show button Return to Dashboard to page Dashboard

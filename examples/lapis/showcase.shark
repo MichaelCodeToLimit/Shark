@@ -1,0 +1,26 @@
+note The Lapis command files, used. Lapis listed commands in commands.lp and
+note charts.lp but no Lapis program ever called them; this one does.
+note
+note `use commands` makes the instructions that commands.shark shares visible
+note here, so `show title` reads like a built-in instruction. Build and run:
+note   python compose.py run examples/lapis/showcase.shark
+
+use commands
+use charts
+
+keep visitors as 1250
+keep goal as 2000
+
+page Showcase
+  show title Welcome to Shark
+  show chart bar with visitors
+  show progress visitors times 100 over goal
+  show button Add a visitor
+  show button Finish to page Done
+
+  when Add a visitor is pressed
+    set visitors to visitors plus 1
+
+page Done
+  show title Thanks for visiting
+  show progress 100

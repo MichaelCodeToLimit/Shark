@@ -1,0 +1,103 @@
+{
+  "name": "shark-lang",
+  "displayName": "Shark",
+  "description": "Shark language support: syntax highlighting, completion, diagnostics, hover and go to definition.",
+  "version": "0.1.0",
+  "publisher": "shark-lang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MichaelCodeToLimit/Coco"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "shark",
+    "punctuation-free",
+    "multilingual"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:shark"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "shark",
+        "aliases": [
+          "Shark",
+          "shark"
+        ],
+        "extensions": [
+          ".shark"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "shark",
+        "scopeName": "source.shark",
+        "path": "./shark.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Shark",
+      "properties": {
+        "shark.server.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run the Shark language server. Turn this off to keep syntax highlighting only."
+        },
+        "shark.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to editor/shark_lsp.py. If empty, the extension looks for editor/shark_lsp.py in the workspace folder."
+        },
+        "shark.python.path": {
+          "type": "string",
+          "default": "",
+          "description": "Python 3.8+ interpreter used to run the language server. If empty, 'python3' then 'python' is tried."
+        },
+        "shark.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Log traffic between the editor and the Shark language server."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[shark]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.detectIndentation": false,
+        "editor.semanticHighlighting.enabled": true,
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": true
+        },
+        "editor.wordBasedSuggestions": "off"
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^3.2.1"
+  },
+  "scripts": {
+    "package": "vsce package --allow-missing-repository"
+  }
+}

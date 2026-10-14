@@ -2,7 +2,7 @@ note ---------------------------------------------------------------------------
 note This file is a specification illustration. It uses record declarations,
 note abilities and control flow, which the single file reference front end does
 note not implement yet (see spec/15 section 15.8). Programs that the reference
-note can compile today are hello.coco, tour*.coco, pages.coco and ambiguity.coco.
+note can compile today are hello.shark, tour*.shark, pages.shark and ambiguity.shark.
 note ---------------------------------------------------------------------------
 
 note A social application. One language for interface, logic, storage and server.
@@ -80,6 +80,6 @@ serve on port 8080
 
 note ---------------------------------------------------------------------------
 note There is no SQL here, and there cannot be: the `where` block is ordinary
-note Coco that the compiler analyses at build time to choose an index. String
+note Shark that the compiler analyses at build time to choose an index. String
 note interpolation into a query is not expressible, so injection is not a class
 note of bug this program can have.

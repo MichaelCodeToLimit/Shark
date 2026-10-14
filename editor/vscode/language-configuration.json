@@ -1,0 +1,21 @@
+{
+  "comments": {
+    "lineComment": "note"
+  },
+  "brackets": [],
+  "autoClosingPairs": [],
+  "surroundingPairs": [],
+  "wordPattern": "[\\p{L}\\p{M}\\p{Nd}_'’-]+",
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(page|when|to|if|otherwise|while|repeat|for\\s+each|during|group|text|in\\s+a\\s+row|in\\s+a\\s+column|in\\s+a\\s+grid\\s+of|centred|scrolling|serve|try|fetch\\s+these\\s+at\\s+the\\s+same\\s+time|run\\s+on\\s+the|the\\s+message\\b.*\\bsays)\\b.*$",
+    "decreaseIndentPattern": "^\\s*(otherwise|or)\\b.*$"
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*note\\b.*$",
+      "action": {
+        "indent": "none"
+      }
+    }
+  ]
+}

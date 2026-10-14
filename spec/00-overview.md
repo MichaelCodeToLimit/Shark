@@ -4,24 +4,24 @@
 
 ---
 
-## 0.1 What Coco is **[I]**
+## 0.1 What Shark is **[I]**
 
-Coco is a general-purpose, statically typed, ahead-of-time compiled programming
+Shark is a general-purpose, statically typed, ahead-of-time compiled programming
 language whose surface syntax is punctuation-free human language, and whose compiler is
 a conventional deterministic compiler — a lexer, a parser, a type checker, an optimiser
 and a code generator. No machine-learning model is involved at any stage of translating
-Coco source into a program.
+Shark source into a program.
 
-Coco has:
+Shark has:
 
 - its own grammar, defined in this specification;
-- its own intermediate representation (**CIR**), defined in [document 08](08-cir.md);
+- its own intermediate representation (**SIR**), defined in [document 08](08-sir.md);
 - its own runtime and standard library, defined in [document 11](11-stdlib.md);
 - its own build tool, `compose`, defined in [document 12](12-toolchain.md);
 - native code generation for x86-64, ARM64, WebAssembly and GPU targets.
 
-Coco is **not** a transpiler to JavaScript, Python, HTML or C++. Those languages may
-appear as *optional* interop targets, never as the definition of what an Coco program
+Shark is **not** a transpiler to JavaScript, Python, HTML or C++. Those languages may
+appear as *optional* interop targets, never as the definition of what an Shark program
 means.
 
 ## 0.2 The four principles **[I]**
@@ -61,7 +61,7 @@ So there is always an escape hatch. When the convenient form is ambiguous or mea
 wrong thing, the compiler's error message shows the explicit form, and a fix-it applies
 it. For example, a button whose label happens to contain a registry particle:
 
-```coco
+```shark
 note the convenient form would mis-parse, because "to page" is a terminator phrase
 show button Go to page 2 of the manual
 
@@ -73,11 +73,11 @@ show button
 
 ### Rule 3 — The Canonical Meaning Rule
 
-> A program's meaning is a property of its **CIR**, never of its source words.
+> A program's meaning is a property of its **SIR**, never of its source words.
 
-Two source files in different human languages that lower to the same canonical CIR are
+Two source files in different human languages that lower to the same canonical SIR are
 the same program, and are required to produce bit-identical output binaries for the same
-target and options ([doc 08 §8.7](08-cir.md)).
+target and options ([doc 08 §8.7](08-sir.md)).
 
 ### Rule 4 — The No-Hidden-Cost Rule
 
@@ -90,9 +90,9 @@ stop-the-world tracing collector.
 
 ### Rule 5 — The One-Language Rule
 
-> Anything an Coco application needs — layout, styling, interaction, persistence,
+> Anything an Shark application needs — layout, styling, interaction, persistence,
 > networking, 2D/3D rendering, physics, numeric and GPU compute — is expressible in
-> Coco itself, using the same grammar.
+> Shark itself, using the same grammar.
 
 There is no embedded second syntax for markup, styling, queries or shaders.
 
@@ -101,7 +101,7 @@ There is no embedded second syntax for markup, styling, queries or shaders.
 This is the question the whole design turns on, so here is the short answer before the
 formal treatment in [documents 02](02-grammar.md) and [03](03-clause-registry.md).
 
-Coco does not try to *understand English*. It matches against a finite, declared
+Shark does not try to *understand English*. It matches against a finite, declared
 table of **clause signatures**. A signature is a fixed sequence of keyword phrases,
 particle phrases, and typed slots:
 
@@ -129,21 +129,21 @@ suffices. No backtracking, no ambiguity, no guessing.
 The trick that makes this scale is that **users extend the registry**, not the grammar.
 Defining a function *is* registering a signature:
 
-```coco
+```shark
 to damage a target by an amount
   set health of target to health of target minus amount
 ```
 
 …which registers `damage <target: ref> by <amount: number>`, callable as:
 
-```coco
+```shark
 damage Hero by 10
 ```
 
 The registry conditions R1–R6 are re-checked when the definition is added, so
 user code can never make the language ambiguous. It can only fail to compile.
 
-## 0.5 Reading a line of Coco **[I]**
+## 0.5 Reading a line of Shark **[I]**
 
 Every statement is a **clause**. A clause has:
 
@@ -165,7 +165,7 @@ Four slot kinds carry values:
 Plus two structural kinds: `ref` (a reference to something already declared) and
 `block` (an indented body).
 
-## 0.6 What Coco deliberately does not have **[N]**
+## 0.6 What Shark deliberately does not have **[N]**
 
 | Absent | Why | Replacement |
 | --- | --- | --- |
@@ -182,8 +182,8 @@ Plus two structural kinds: `ref` (a reference to something already declared) and
 
 - Grammar is written in ISO/IEC 14977 EBNF with the extensions noted in
   [doc 02 §2.1](02-grammar.md).
-- Coco source appears in fenced blocks tagged `coco`.
-- CIR appears in fenced blocks tagged `cir`.
+- Shark source appears in fenced blocks tagged `shark`.
+- SIR appears in fenced blocks tagged `sir`.
 - Registry signature declarations appear in blocks tagged `sig`.
 - Diagnostic identifiers have the form `E-CCNN` (see [doc 14](14-diagnostics.md)).
 - The key words MUST, MUST NOT, SHOULD, SHOULD NOT, MAY are used as in RFC 2119.
@@ -191,7 +191,7 @@ Plus two structural kinds: `ref` (a reference to something already declared) and
 ## 0.8 Edition policy **[N]**
 
 The language is versioned by **edition**. This document defines **Edition 2026**. A
-project declares its edition in `project.coco`. An implementation MUST be able to compile
+project declares its edition in `project.shark`. An implementation MUST be able to compile
 every edition it claims to support, and MUST NOT change the meaning of a program within
 an edition. New keywords and new core signatures may only be introduced in a new
 edition. See [doc 15](15-conformance-and-editions.md).

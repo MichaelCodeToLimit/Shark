@@ -2,7 +2,7 @@
 
 *Edition 2026. **[N]** normative, **[I]** informative.*
 
-Coco's audience includes people who have never programmed. The error messages are part
+Shark's audience includes people who have never programmed. The error messages are part
 of the language design, not an afterthought, and this document is normative about them.
 
 ---
@@ -24,7 +24,7 @@ I-CCNN   information  something the compiler decided that you may want to know
 | `05` | types and semantics |
 | `06` | memory, ownership, regions |
 | `07` | concurrency, effects, vectorisation |
-| `08` | CIR / verifier (internal) |
+| `08` | SIR / verifier (internal) |
 | `09` | pipeline, budgets |
 | `10` | targets, ABI, devices |
 | `11` | standard library |
@@ -59,7 +59,7 @@ own message table.
 ```
 E-0231  This button has no label.
 
-   ┌─ src/main.coco:7:3
+   ┌─ src/main.shark:7:3
    │
  7 │   show button to page Game
    │   ─────────── ↑ the label would go here
@@ -119,7 +119,7 @@ and the fix is one keystroke.
 ```
 E-0312  Two instructions could start the same way.
 
-   ┌─ src/charts.coco:3:1
+   ┌─ src/charts.shark:3:1
    │
  3 │ to show a chart of a kind with some data
    │    ──── ↑ this would create an instruction called `show`
@@ -258,13 +258,13 @@ Shown in [doc 07 §7.9.2](07-concurrency-and-simd.md).
 
 Warnings MUST be individually controllable:
 
-```coco
+```shark
 allow hidden names in this block
   ...
 ```
 
-```coco
-note in project.coco
+```shark
+note in project.shark
 warnings
   hidden names off
   missing descriptions as errors
@@ -283,16 +283,16 @@ compose check --message-format json
   "code": "E-0231",
   "severity": "error",
   "summary": "This button has no label.",
-  "primary": { "file": "src/main.coco", "line": 7, "column": 3, "endColumn": 14,
+  "primary": { "file": "src/main.shark", "line": 7, "column": 3, "endColumn": 14,
                "byteStart": 118, "byteEnd": 129, "label": "the label would go here" },
-  "secondary": [ { "file": "src/main.coco", "line": 7, "column": 15, "endColumn": 22,
+  "secondary": [ { "file": "src/main.shark", "line": 7, "column": 15, "endColumn": 22,
                    "label": "`to page` starts the next part of the line" } ],
   "help": "give the button something to say",
   "fixes": [ { "title": "Add a label",
-               "edits": [ { "file": "src/main.coco", "byteStart": 129, "byteEnd": 129,
+               "edits": [ { "file": "src/main.shark", "byteStart": 129, "byteEnd": 129,
                             "newText": " Play" } ] } ],
   "cids": [ "core.stmt.show_button", "core.slot.show_button.label" ],
-  "explainUrl": "https://coco-lang.org/e/E-0231"
+  "explainUrl": "https://shark-lang.org/e/E-0231"
 }
 ```
 
@@ -301,15 +301,15 @@ re-decode. For RTL files, `visualColumn` is present.
 
 ## 14.8 Internal compiler errors **[N]**
 
-A verifier failure ([doc 08 §8.8](08-cir.md)) or any unexpected state produces:
+A verifier failure ([doc 08 §8.8](08-sir.md)) or any unexpected state produces:
 
 ```
 E-0801  The compiler found a problem in its own work.
 
-  This is a bug in Coco, not in your program.
+  This is a bug in Shark, not in your program.
 
-  Please report it at https://coco-lang.org/bug with this file:
-    .coco/reports/2026-09-22-141203.embug
+  Please report it at https://shark-lang.org/bug with this file:
+    .shark/reports/2026-09-22-141203.embug
 
   The report contains: your source (unless you pass --no-source),
   the canonical hash b3:9f4c1e…, the toolchain version, and the

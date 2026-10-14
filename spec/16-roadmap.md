@@ -9,7 +9,7 @@ Each stage below is independently useful and independently testable.
 
 ## 16.1 Stage 0 — Front end in a host language (weeks 1–8)
 
-**Deliverable:** `coco0`, a lexer + registry + parser + CIR-D emitter, written in
+**Deliverable:** `shark0`, a lexer + registry + parser + SIR-D emitter, written in
 Rust (the reference implementation in `reference/` of this repository is a Python sketch
 of the same design, deliberately small enough to read in one sitting).
 
@@ -19,28 +19,28 @@ of the same design, deliberately small enough to read in one sitting).
 | Registry loader and R1–R6 verifier | `conformance/registry` |
 | Clause parser with greedy slots | `conformance/parse` |
 | Locale binding, `en` + `he` + `ja` | `conformance/locale` |
-| CIR-D emitter + canonical hash | locale-equivalence test passes |
+| SIR-D emitter + canonical hash | locale-equivalence test passes |
 
 **Why first:** everything else depends on the registry and the parser being provably
 deterministic. Getting the locale-equivalence test green here validates the entire
 multilingual thesis before a single instruction is generated.
 
-## 16.2 Stage 1 — Types, effects, and CIR-C (weeks 6–20)
+## 16.2 Stage 1 — Types, effects, and SIR-C (weeks 6–20)
 
 | Milestone | Test |
 | --- | --- |
 | Hindley–Milner inference with signature-directed checking | `conformance/types` |
 | Abilities and monomorphisation | `conformance/types` |
 | Effect inference over the call graph | `conformance/concurrency` (effect parts) |
-| CIR-C lowering, SSA construction | `conformance/cir` |
-| The 24-invariant verifier | `conformance/cir` |
+| SIR-C lowering, SSA construction | `conformance/sir` |
+| The 24-invariant verifier | `conformance/sir` |
 
 **Why here:** the verifier is what lets every later stage be developed aggressively
 without risking unsoundness. Write it before the optimiser, not after.
 
-## 16.3 Stage 2 — An CIR-C interpreter (weeks 14–22)
+## 16.3 Stage 2 — An SIR-C interpreter (weeks 14–22)
 
-A straightforward tree-walking/threaded interpreter over CIR-C.
+A straightforward tree-walking/threaded interpreter over SIR-C.
 
 **Why it matters out of proportion to its size:**
 
@@ -76,7 +76,7 @@ analysis.
 | `compose run` producing a real executable |
 | Differential testing against the stage 2 interpreter |
 
-At the end of stage 4 Coco is a usable systems language for command-line programs.
+At the end of stage 4 Shark is a usable systems language for command-line programs.
 
 ## 16.6 Stage 5 — Scheduler, LSP, toolchain (weeks 34–52)
 
@@ -85,27 +85,27 @@ At the end of stage 4 Coco is a usable systems language for command-line program
 | Runtime | `sched` layer: work-stealing pool, handler groups, timers |
 | Compiler | handler conflict analysis, `compose explain schedule` |
 | Tooling | incremental query engine, `compose serve`, VS Code extension |
-| Tooling | `project.coco`, lockfile, the Pantry (registry service), `compose add/publish` |
+| Tooling | `project.shark`, lockfile, the Reef (registry service), `compose add/publish` |
 | Tooling | `compose format`, `compose doc`, `compose test` |
 
-Stage 5 is where Coco becomes pleasant rather than merely possible. The LSP is not a
+Stage 5 is where Shark becomes pleasant rather than merely possible. The LSP is not a
 nice-to-have here: because completion is registry-driven
 ([doc 13 §13.2](13-lsp.md)), the editor is how people discover the language.
 
 ## 16.7 Stage 6 — Self-hosting (weeks 44–70)
 
-Rewrite the compiler in Coco, module by module, starting with the lexer (smallest,
+Rewrite the compiler in Shark, module by module, starting with the lexer (smallest,
 most testable) and ending with the back end.
 
 The fixpoint check is unusually strong here:
 
 ```
 hash(  stage0_rust.compile( compiler_source )  )   ==
-hash(  stage2_coco.compile( compiler_source )  )
+hash(  stage2_shark.compile( compiler_source )  )
 ```
 
 Because the canonical hash is locale- and format-invariant
-([doc 08 §8.7](08-cir.md)), this equality is exact and independent of how either compiler
+([doc 08 §8.7](08-sir.md)), this equality is exact and independent of how either compiler
 formats or orders anything.
 
 ## 16.8 Stage 7 — LLVM back end and optimisation (weeks 60–90)
@@ -135,14 +135,14 @@ These are independent and can proceed concurrently with separate teams.
 | **Net** | HTTP/1.1, 2, 3; TLS; sockets; `serve` | stage 5 |
 | **Store** | LSM B-tree, MVCC, WAL, compile-time query planning | stage 4 |
 | **Device** | SPIR-V and WGSL back ends, transfers, `run on the gpu` | stage 7 |
-| **Tensor** | tensor ops, AD on CIR-C, microkernels | Device |
+| **Tensor** | tensor ops, AD on SIR-C, microkernels | Device |
 | **WASM** | wasm32 back end, browser runtime, component model | stage 7 |
 
 ## 16.10 Sequencing rationale **[I]**
 
 Three principles drove this ordering.
 
-**1. Prove the risky claim first.** The novel part of Coco is punctuation-free
+**1. Prove the risky claim first.** The novel part of Shark is punctuation-free
 determinism and locale-invariant IR. That risk is fully retired at the end of stage 0,
 for eight weeks of work, before anything expensive is built. If the locale-equivalence
 test cannot be made green, the design is wrong and should change then — not after a
@@ -172,7 +172,7 @@ not usability.
 language at ~10 months (end of stage 4) and a self-hosting one at ~18 months.
 
 For comparison: Rust took about 9 years from first commit to 1.0 with a larger team, but
-without the benefit of hindsight on borrow checking. Go took 3 years to 1.0. Coco's
+without the benefit of hindsight on borrow checking. Go took 3 years to 1.0. Shark's
 front end is *simpler* than either — the registry does the work a hand-written parser
 normally does — and its hard parts (region inference, the optimiser) are well-trodden
 ground with published algorithms.
@@ -181,7 +181,7 @@ ground with published algorithms.
 
 Stage 0, then stage 2's interpreter, then the VS Code extension from stage 5. That
 combination — a deterministic parser, an interpreter that runs programs, and an editor
-that teaches the language through completion — is a real, demonstrable Coco that a
+that teaches the language through completion — is a real, demonstrable Shark that a
 beginner can learn from, in roughly four months of focused work, and it is enough to find
 out whether the language is actually pleasant to write.
 
