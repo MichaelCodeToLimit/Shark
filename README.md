@@ -1,4 +1,4 @@
-# <img src="hot-chocolate.svg" width="34" height="34" valign="middle" style="display:inline-block;" /> Shark
+# <img src="shark.svg" width="34" height="34" valign="middle" style="display:inline-block;" /> Shark
 
 
 **Simple. Easy. Fast. Efficient.**
